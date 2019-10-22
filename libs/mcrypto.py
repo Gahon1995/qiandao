@@ -15,35 +15,40 @@ from Crypto.Hash import SHA256
 from Crypto.Cipher import AES
 
 random = Random.new()
+
+
 def password_hash(word, salt=None, iterations=config.pbkdf2_iterations):
     if salt is None:
         salt = random.read(16)
     elif len(salt) > 16:
-        _, salt, iterations = umsgpack.unpackb(salt)
+        _, salt, iterations = umsgpack.unpackb(salt, encoding="utf8")
 
-    word = umsgpack.packb(word)
+    word = umsgpack.packb(word, use_bin_type=True)
 
     rawhash = PBKDF2(word, salt, iterations).read(32)
 
-    return umsgpack.packb([rawhash, salt, iterations])
+    return umsgpack.packb([rawhash, salt, iterations], use_bin_type=True)
+
 
 def aes_encrypt(word, key=config.aes_key, iv=None):
     if iv is None:
         iv = random.read(16)
 
-    word = umsgpack.packb(word)
+    word = umsgpack.packb(word, use_bin_type=True)
+
     mod = len(word) % 16
     if mod != 0:
-        word += '\0' * (16-mod)
+        word += b'\x00' * (16 - mod)
 
     aes = AES.new(key, AES.MODE_CBC, iv)
     ciphertext = aes.encrypt(word)
 
-    return umsgpack.packb([ciphertext, iv])
+    return umsgpack.packb([ciphertext, iv], use_bin_type=True)
+
 
 def aes_decrypt(word, key=config.aes_key, iv=None):
     if iv is None:
-        word, iv = umsgpack.unpackb(word)
+        word, iv = umsgpack.unpackb(word, encoding="utf8")
     else:
         raise Exception('no iv error')
 
@@ -52,6 +57,6 @@ def aes_decrypt(word, key=config.aes_key, iv=None):
 
     while word:
         try:
-            return umsgpack.unpackb(word)
-        except umsgpack.ExtraData:
+            return umsgpack.unpackb(word, encoding="utf8")
+        except Exception:
             word = word[:-1]

@@ -7,10 +7,10 @@
 
 import json
 import time
-import urlparse
+import urllib.parse
 from datetime import datetime
 
-from base import *
+from .base import *
 
 class PushListHandler(BaseHandler):
     @tornado.web.authenticated
@@ -22,7 +22,7 @@ class PushListHandler(BaseHandler):
         def get_user(userid):
             if not userid:
                 return dict(
-                        nickname = u'公开',
+                        nickname = '公开',
                         email = None,
                         email_verified = True,
                         )
@@ -32,7 +32,7 @@ class PushListHandler(BaseHandler):
                 user = self.db.user.get(userid, fields=('id', 'nickname'))
             if not user:
                 return dict(
-                        nickname = u'公开',
+                        nickname = '公开',
                         email = None,
                         email_verified = False,
                         )

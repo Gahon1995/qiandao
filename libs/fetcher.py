@@ -8,10 +8,10 @@
 import re
 import json
 import random
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import base64
 import logging
-import urlparse
+import urllib.parse
 from datetime import datetime
 
 try:
@@ -82,28 +82,29 @@ class Fetcher(object):
                 if downloaded > download_size_limit:
                     return 1
                 return 0
+
             curl.setopt(pycurl.NOPROGRESS, 0)
             curl.setopt(pycurl.PROGRESSFUNCTION, size_limit)
             return curl
 
         req = httpclient.HTTPRequest(
-                url = url,
-                method = method,
-                headers = headers,
-                body = data,
-                follow_redirects = False,
-                max_redirects = 0,
-                decompress_response = True,
-                allow_nonstandard_methods = True,
-                allow_ipv6 = True,
-                prepare_curl_callback = set_size_limit_callback,
-                )
+            url=url,
+            method=method,
+            headers=headers,
+            body=data,
+            follow_redirects=False,
+            max_redirects=0,
+            decompress_response=True,
+            allow_nonstandard_methods=True,
+            allow_ipv6=True,
+            prepare_curl_callback=set_size_limit_callback,
+        )
 
         session = cookie_utils.CookieSession()
         if req.headers.get('Cookie'):
             session.update(dict(x.strip().split('=', 1) \
-                    for x in req.headers['Cookie'].split(';') \
-                    if '=' in x))
+                                for x in req.headers['Cookie'].split(';') \
+                                if '=' in x))
         if isinstance(env['session'], cookie_utils.CookieSession):
             session.from_json(env['session'].to_json())
         else:
@@ -128,30 +129,30 @@ class Fetcher(object):
             return result
 
         def build_request(request):
-            url = urlparse.urlparse(request.url)
+            url = urllib.parse.urlparse(request.url)
             ret = dict(
-                    method = request.method,
-                    url = request.url,
-                    httpVersion = 'HTTP/1.1',
-                    headers = build_headers(request.headers),
-                    queryString = [
-                        {'name': n, 'value': v} for n, v in\
-                                urlparse.parse_qsl(url.query)],
-                    cookies = [
-                        {'name': n, 'value': v} for n, v in \
-                                urlparse.parse_qsl(request.headers.get('cookie', ''))],
-                    headersSize = -1,
-                    bodySize = len(request.body) if request.body else 0,
-                    )
+                method=request.method,
+                url=request.url,
+                httpVersion='HTTP/1.1',
+                headers=build_headers(request.headers),
+                queryString=[
+                    {'name': n, 'value': v} for n, v in \
+                    urllib.parse.parse_qsl(url.query)],
+                cookies=[
+                    {'name': n, 'value': v} for n, v in \
+                    urllib.parse.parse_qsl(request.headers.get('cookie', ''))],
+                headersSize=-1,
+                bodySize=len(request.body) if request.body else 0,
+            )
             if request.body:
                 ret['postData'] = dict(
-                        mimeType = request.headers.get('content-type'),
-                        text = request.body,
-                        )
+                    mimeType=request.headers.get('content-type'),
+                    text=request.body,
+                )
                 if ret['postData']['mimeType'] == 'application/x-www-form-urlencoded':
                     ret['postData']['params'] = [
-                            {'name': n, 'value': v} for n, v in \
-                                urlparse.parse_qsl(request.body)]
+                        {'name': n, 'value': v} for n, v in \
+                        urllib.parse.parse_qsl(request.body)]
                     try:
                         _ = json.dumps(ret['postData']['params'])
                     except UnicodeDecodeError:
@@ -168,34 +169,34 @@ class Fetcher(object):
             if not response.headers.get('content-type'):
                 response.headers['content-type'] = 'text/plain'
             if 'charset=' not in response.headers.get('content-type', ''):
-                response.headers['content-type'] += '; charset='+encoding
+                response.headers['content-type'] += '; charset=' + encoding
 
             return dict(
-                    status = response.code,
-                    statusText = response.reason,
-                    headers = build_headers(response.headers),
-                    cookies = cookies.to_json(),
-                    content = dict(
-                        size = len(response.body),
-                        mimeType = response.headers.get('content-type'),
-                        text = base64.b64encode(response.body),
-                        decoded = utils.decode(response.body, response.headers),
-                        ),
-                    redirectURL = response.headers.get('Location'),
-                    headersSize = -1,
-                    bodySize = -1,
-                    )
+                status=response.code,
+                statusText=response.reason,
+                headers=build_headers(response.headers),
+                cookies=cookies.to_json(),
+                content=dict(
+                    size=len(response.body),
+                    mimeType=response.headers.get('content-type'),
+                    text=base64.b64encode(response.body).decode('utf-8'),
+                    decoded=utils.decode(response.body, response.headers),
+                ),
+                redirectURL=response.headers.get('Location'),
+                headersSize=-1,
+                bodySize=-1,
+            )
 
         entry = dict(
-            startedDateTime = datetime.now().isoformat(),
-            time = response.request_time,
-            request = build_request(request),
-            response = build_response(response),
-            cache = {},
-            timings = response.time_info,
-            connections = "0",
-            pageref = "page_0",
-            )
+            startedDateTime=datetime.now().isoformat(),
+            time=response.request_time,
+            request=build_request(request),
+            response=build_response(response),
+            cache={},
+            timings=response.time_info,
+            connections="0",
+            pageref="page_0",
+        )
         return entry
 
     @staticmethod
@@ -204,6 +205,7 @@ class Fetcher(object):
         msg = ''
 
         content = [-1, ]
+
         def getdata(_from):
             if _from == 'content':
                 if content[0] == -1:
@@ -215,7 +217,7 @@ class Fetcher(object):
                 _from = _from[7:]
                 return response.headers.get(_from, '')
             elif _from == 'header':
-                return unicode(response.headers)
+                return str(response.headers)
             else:
                 return ''
 
@@ -270,66 +272,64 @@ class Fetcher(object):
     @staticmethod
     def tpl2har(tpl):
         def build_request(en):
-            url = urlparse.urlparse(en['request']['url'])
+            url = urllib.parse.urlparse(en['request']['url'])
             request = dict(
-                    method = en['request']['method'],
-                    url = en['request']['url'],
-                    httpVersion = 'HTTP/1.1',
-                    headers = [
-                        {'name': x['name'], 'value': x['value'], 'checked': True} for x in\
-                                en['request'].get('headers', [])],
-                    queryString = [
-                        {'name': n, 'value': v} for n, v in\
-                                urlparse.parse_qsl(url.query)],
-                    cookies = [
-                        {'name': x['name'], 'value': x['value'], 'checked': True} for x in\
-                                en['request'].get('cookies', [])],
-                    headersSize = -1,
-                    bodySize = len(en['request'].get('data')) if en['request'].get('data') else 0,
+                method=en['request']['method'],
+                url=en['request']['url'],
+                httpVersion='HTTP/1.1',
+                headers=[
+                    {'name': x['name'], 'value': x['value'], 'checked': True} for x in \
+                    en['request'].get('headers', [])],
+                queryString=[
+                    {'name': n, 'value': v} for n, v in \
+                    urllib.parse.parse_qsl(url.query)],
+                cookies=[
+                    {'name': x['name'], 'value': x['value'], 'checked': True} for x in \
+                    en['request'].get('cookies', [])],
+                headersSize=-1,
+                bodySize=len(en['request'].get('data')) if en['request'].get('data') else 0,
 
-
-                    )
+            )
             if en['request'].get('data'):
                 request['postData'] = dict(
-                        mimeType = en['request'].get('mimeType'),
-                        text = en['request'].get('data'),
-                        )
+                    mimeType=en['request'].get('mimeType'),
+                    text=en['request'].get('data'),
+                )
                 if en['request'].get('mimeType') == 'application/x-www-form-urlencoded':
                     params = [{'name': x[0], 'value': x[1]} \
-                        for x in urlparse.parse_qsl(en['request']['data'], True)]
+                              for x in urllib.parse.parse_qsl(en['request']['data'], True)]
                     request['postData']['params'] = params
             return request
 
         entries = []
         for en in tpl:
             entry = dict(
-                    checked = True,
-                    startedDateTime = datetime.now().isoformat(),
-                    time = 1,
-                    request = build_request(en),
-                    response = {},
-                    cache = {},
-                    timings = {},
-                    connections = "0",
-                    pageref = "page_0",
+                checked=True,
+                startedDateTime=datetime.now().isoformat(),
+                time=1,
+                request=build_request(en),
+                response={},
+                cache={},
+                timings={},
+                connections="0",
+                pageref="page_0",
 
-                    success_asserts = en.get('rule', {}).get('success_asserts', []),
-                    failed_asserts = en.get('rule', {}).get('failed_asserts', []),
-                    extract_variables = en.get('rule', {}).get('extract_variables', []),
-                    )
+                success_asserts=en.get('rule', {}).get('success_asserts', []),
+                failed_asserts=en.get('rule', {}).get('failed_asserts', []),
+                extract_variables=en.get('rule', {}).get('extract_variables', []),
+            )
             entries.append(entry)
         return dict(
-                log = dict(
-                    creator = dict(
-                        name = 'binux',
-                        version = 'qiandao'
-                        ),
-                    entries = entries,
-                    pages = [],
-                    version = '1.2'
-                    )
-                )
-
+            log=dict(
+                creator=dict(
+                    name='binux',
+                    version='qiandao'
+                ),
+                entries=entries,
+                pages=[],
+                version='1.2'
+            )
+        )
 
     @gen.coroutine
     def fetch(self, obj, proxy={}):
@@ -377,7 +377,7 @@ class Fetcher(object):
             'response': response,
             'env': env,
             'msg': msg,
-            })
+        })
 
     FOR_START = re.compile('{%\s*for\s+(\w+)\s+in\s+(\w+)\s*%}')
     FOR_END = re.compile('{%\s*endfor\s*%}')
@@ -439,17 +439,17 @@ class Fetcher(object):
                 try:
                     request_limit -= 1
                     result = yield self.fetch(dict(
-                        request = entry['request'],
-                        rule = entry['rule'],
-                        env = env,
-                        ), proxy=proxy)
+                        request=entry['request'],
+                        rule=entry['rule'],
+                        env=env,
+                    ), proxy=proxy)
                     env = result['env']
                 except Exception as e:
                     if config.debug:
                         logging.exception(e)
                     raise Exception('failed at %d/%d request, error:%r, %s' % (
-                        i+1, len(tpl), e, entry['request']['url']))
+                        i + 1, len(tpl), e, entry['request']['url']))
                 if not result['success']:
                     raise Exception('failed at %d/%d request, %s, %s' % (
-                        i+1, len(tpl), result['msg'], entry['request']['url']))
+                        i + 1, len(tpl), result['msg'], entry['request']['url']))
         raise gen.Return(env)

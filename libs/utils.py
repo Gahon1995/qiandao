@@ -27,7 +27,7 @@ def func_cache(f):
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        key = umsgpack.packb((args, kwargs))
+        key = umsgpack.packb((args, kwargs), use_bin_type=True)
         if key not in _cache:
             _cache[key] = f(*args, **kwargs)
         return _cache[key]
@@ -40,17 +40,18 @@ def method_cache(fn):
     def wrapper(self, *args, **kwargs):
         if not hasattr(self, '_cache'):
             self._cache = dict()
-        key = umsgpack.packb((args, kwargs))
+        key = umsgpack.packb((args, kwargs), use_bin_type=True)
         if key not in self._cache:
             self._cache[key] = fn(self, *args, **kwargs)
         return self._cache[key]
 
     return wrapper
 
+
 import datetime
 
 
-def format_date(date, gmt_offset=-8*60, relative=True, shorter=False, full_format=False):
+def format_date(date, gmt_offset=-8 * 60, relative=True, shorter=False, full_format=False):
     """Formats the given date (which should be GMT).
 
     By default, we return a relative time (e.g., "2 minutes ago"). You
@@ -72,10 +73,10 @@ def format_date(date, gmt_offset=-8*60, relative=True, shorter=False, full_forma
     local_yesterday = local_now - datetime.timedelta(hours=24)
     local_tomorrow = local_now + datetime.timedelta(hours=24)
     if date > now:
-        later = u"后"
+        later = "后"
         date, now = now, date
     else:
-        later = u"前"
+        later = "前"
     difference = now - date
     seconds = difference.seconds
     days = difference.days
@@ -84,25 +85,25 @@ def format_date(date, gmt_offset=-8*60, relative=True, shorter=False, full_forma
     if not full_format:
         if relative and days == 0:
             if seconds < 50:
-                return u"%(seconds)d 秒" % {"seconds": seconds} + later
+                return "%(seconds)d 秒" % {"seconds": seconds} + later
 
             if seconds < 50 * 60:
                 minutes = round(seconds / 60.0)
-                return u"%(minutes)d 分钟" % {"minutes": minutes} + later
+                return "%(minutes)d 分钟" % {"minutes": minutes} + later
 
             hours = round(seconds / (60.0 * 60))
-            return u"%(hours)d 小时" % {"hours": hours} + later
+            return "%(hours)d 小时" % {"hours": hours} + later
 
         if days == 0:
             format = "%(time)s"
         elif days == 1 and local_date.day == local_yesterday.day and \
-                relative and later == u'前':
-            format = u"昨天" if shorter else u"昨天 %(time)s"
+                relative and later == '前':
+            format = "昨天" if shorter else "昨天 %(time)s"
         elif days == 1 and local_date.day == local_tomorrow.day and \
-                relative and later == u'后':
-            format = u"明天" if shorter else u"明天 %(time)s"
-        #elif days < 5:
-            #format = "%(weekday)s" if shorter else "%(weekday)s %(time)s"
+                relative and later == '后':
+            format = "明天" if shorter else "明天 %(time)s"
+        # elif days < 5:
+        # format = "%(weekday)s" if shorter else "%(weekday)s %(time)s"
         elif days < 334:  # 11mo, since confusing for same month last year
             format = "%(month_name)s-%(day)s" if shorter else \
                 "%(month_name)s-%(day)s %(time)s"
@@ -123,16 +124,17 @@ def format_date(date, gmt_offset=-8*60, relative=True, shorter=False, full_forma
 
 
 def utf8(string):
-    if isinstance(string, unicode):
+    if isinstance(string, str):
         return string.encode('utf8')
     return string
 
-import urllib
+
+import urllib.request, urllib.parse, urllib.error
 import config
 from tornado import httpclient
 
 
-def send_mail(to, subject, text=None, html=None, async=False, _from=u"签到提醒 <noreply@%s>" % config.mail_domain):
+def send_mail(to, subject, text=None, html=None, async=False, _from="签到提醒 <noreply@%s>" % config.mail_domain):
     if not config.mailgun_key:
         subtype = 'html' if html else 'plain'
         return _send_mail(to, subject, html or text or '', subtype)
@@ -161,7 +163,7 @@ def send_mail(to, subject, text=None, html=None, async=False, _from=u"签到提�
         url="https://api.mailgun.net/v2/%s/messages" % config.mail_domain,
         auth_username="api",
         auth_password=config.mailgun_key,
-        body=urllib.urlencode(body)
+        body=urllib.parse.urlencode(body)
     )
     return client.fetch(req)
 
@@ -200,37 +202,36 @@ from requests.utils import get_encoding_from_headers, get_encodings_from_content
 
 
 def find_encoding(content, headers=None):
-    # content is unicode
-    if isinstance(content, unicode):
-        return 'unicode'
-
-    encoding = None
-
-    # Try charset from content-type
-    if headers:
-        encoding = get_encoding_from_headers(headers)
-        if encoding == 'ISO-8859-1':
-            encoding = None
-
-    # Try charset from content
-    if not encoding:
-        encoding = get_encodings_from_content(content)
-        encoding = encoding and encoding[0] or None
-
-    # Fallback to auto-detected encoding.
-    if not encoding and chardet is not None:
-        encoding = chardet.detect(content)['encoding']
-
-    if encoding and encoding.lower() == 'gb2312':
-        encoding = 'gb18030'
-
-    return encoding or 'latin_1'
+    return 'utf-8'
+    # # content is unicode
+    # if isinstance(content, str):
+    #     return 'str'
+    #
+    # encoding = None
+    #
+    # # Try charset from content-type
+    # if headers:
+    #     encoding = get_encoding_from_headers(headers)
+    #     if encoding == 'ISO-8859-1':
+    #         encoding = None
+    #
+    # # Try charset from content
+    # if not encoding:
+    #     encoding = get_encodings_from_content(content)
+    #     encoding = encoding and encoding[0] or None
+    #
+    # # Fallback to auto-detected encoding.
+    # if not encoding and chardet is not None:
+    #     encoding = chardet.detect(content)['encoding']
+    #
+    # if encoding and encoding.lower() == 'gb2312':
+    #     encoding = 'gb18030'
+    #
+    # return encoding or 'latin_1'
 
 
 def decode(content, headers=None):
     encoding = find_encoding(content, headers)
-    if encoding == 'unicode':
-        return content
 
     try:
         return content.decode(encoding, 'replace')
@@ -239,17 +240,19 @@ def decode(content, headers=None):
 
 
 def quote_chinese(url, encodeing="utf-8"):
-    if isinstance(url, unicode):
+    if isinstance(url, str):
         return quote_chinese(url.encode("utf-8"))
     res = [b if ord(b) < 128 else '%%%02X' % (ord(b)) for b in url]
     return "".join(res)
 
 
 import hashlib
+
 md5string = lambda x: hashlib.md5(utf8(x)).hexdigest()
 
-
 import random
+
+
 def get_random(min_num, max_mun, unit):
     random_num = random.uniform(min_num, max_mun)
     result = "%.{0}f".format(int(unit)) % random_num
@@ -257,6 +260,8 @@ def get_random(min_num, max_mun, unit):
 
 
 import datetime
+
+
 def get_date_time(date=True, time=True, time_difference=0):
     time_difference = time_difference + 12
     now_date = datetime.datetime.today() + datetime.timedelta(hours=time_difference)
@@ -272,6 +277,7 @@ def get_date_time(date=True, time=True, time_difference=0):
 
 
 import time
+
 jinja_globals = {
     'md5': md5string,
     'quote_chinese': quote_chinese,

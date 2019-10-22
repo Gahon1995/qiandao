@@ -7,7 +7,7 @@
 
 import json
 from tornado import gen
-from base import *
+from .base import *
 from libs import utils
 
 class TPLPushHandler(BaseHandler):
@@ -17,7 +17,7 @@ class TPLPushHandler(BaseHandler):
         tpl = self.db.tpl.get(tplid, fields=('id', 'userid', 'sitename'))
         if not self.permission(tpl, 'w'):
             self.evil(+5)
-            self.finish(u'<span class="alert alert-danger">没有权限</span>')
+            self.finish('<span class="alert alert-danger">没有权限</span>')
             return
         tpls = self.db.tpl.list(userid=None, limit=None, fields=('id', 'sitename'))
         self.render('tpl_push.html', tpl=tpl, tpls=tpls)
@@ -29,7 +29,7 @@ class TPLPushHandler(BaseHandler):
         tpl = self.db.tpl.get(tplid, fields=('id', 'userid', ))
         if not self.permission(tpl, 'w'):
             self.evil(+5)
-            self.finish(u'<span class="alert alert-danger">没有权限</span>')
+            self.finish('<span class="alert alert-danger">没有权限</span>')
             return
 
         to_tplid = int(self.get_argument('totpl'))
@@ -41,7 +41,7 @@ class TPLPushHandler(BaseHandler):
             totpl = self.db.tpl.get(to_tplid, fields=('id', 'userid', ))
             if not totpl:
                 self.evil(+1)
-                self.finish(u'<span class="alert alert-danger">模板不存在</span>')
+                self.finish('<span class="alert alert-danger">模板不存在</span>')
                 return
             to_userid = totpl['userid']
 

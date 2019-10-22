@@ -12,7 +12,7 @@ from tornado import gen
 from jinja2 import Environment, meta
 from libs import utils
 
-from base import *
+from .base import *
 
 class HAREditor(BaseHandler):
     def get(self, id=None):
@@ -111,11 +111,11 @@ class HARSave(BaseHandler):
             _tmp = self.check_permission(self.db.tpl.get(id, fields=('id', 'userid', 'lock')), 'w')
             if not _tmp['userid']:
                 self.set_status(403)
-                self.finish(u'公开模板不允许编辑')
+                self.finish('公开模板不允许编辑')
                 return
             if _tmp['lock']:
                 self.set_status(403)
-                self.finish(u'模板已锁定')
+                self.finish('模板已锁定')
                 return
 
             self.db.tpl.mod(id, har=har, tpl=tpl, variables=variables)

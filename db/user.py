@@ -11,9 +11,11 @@ import umsgpack
 
 import config
 from libs import mcrypto as crypto, utils
-from basedb import BaseDB
+from .basedb import BaseDB
 
 logger = logging.getLogger('qiandao.userdb')
+
+
 class UserDB(BaseDB):
     '''
     User DB
@@ -22,20 +24,27 @@ class UserDB(BaseDB):
     '''
     __tablename__ = 'user'
 
-    class UserDBException(Exception): pass
-    class NoUserException(UserDBException): pass
-    class DeplicateUser(UserDBException): pass
-    class UserNameError(UserDBException): pass
+    class UserDBException(Exception):
+        pass
+
+    class NoUserException(UserDBException):
+        pass
+
+    class DeplicateUser(UserDBException):
+        pass
+
+    class UserNameError(UserDBException):
+        pass
 
     def __init__(self, host=config.mysql.host, port=config.mysql.port,
-            database=config.mysql.database, user=config.mysql.user, passwd=config.mysql.passwd):
+                 database=config.mysql.database, user=config.mysql.user, passwd=config.mysql.passwd):
         import mysql.connector
         self.conn = mysql.connector.connect(user=user, password=passwd, host=host, port=port,
-                database=database, autocommit=True)
+                                            database=database, autocommit=True)
 
     @staticmethod
     def check_nickname(nickname):
-        if isinstance(nickname, unicode):
+        if isinstance(nickname, str):
             nickname = nickname.encode('utf8')
         return len(nickname) < 64
 
@@ -44,25 +53,25 @@ class UserDB(BaseDB):
             raise self.DeplicateUser('duplicate username')
 
         now = time.time()
-        if isinstance(ip, basestring):
+        if isinstance(ip, str):
             ip = utils.ip2int(ip)
-        userkey = umsgpack.unpackb(crypto.password_hash(password))[0]
+        userkey = umsgpack.unpackb(crypto.password_hash(password), encoding="utf8")[0]
 
         insert = dict(
-                email = email,
-                email_verified = 0,
-                password = crypto.aes_encrypt(
-                    crypto.password_hash(password), userkey),
-                userkey = crypto.aes_encrypt(userkey),
-                nickname = None,
-                role = None,
-                ctime = now,
-                mtime = now,
-                atime = now,
-                cip = ip,
-                mip = ip,
-                aip = ip,
-                )
+            email=email,
+            email_verified=0,
+            password=crypto.aes_encrypt(
+                crypto.password_hash(password), userkey),
+            userkey=crypto.aes_encrypt(userkey),
+            nickname=None,
+            role=None,
+            ctime=now,
+            mtime=now,
+            atime=now,
+            cip=ip,
+            mip=ip,
+            aip=ip,
+        )
         return self._insert(**insert)
 
     def challenge(self, email, password):
@@ -82,12 +91,12 @@ class UserDB(BaseDB):
         if 'password' in kwargs:
             kwargs['password'] = self.encrypt(id, crypto.password_hash(kwargs['password']))
 
-        return self._update(where="id=%s" % self.placeholder, where_values=(id, ), **kwargs)
+        return self._update(where="id=%s" % self.placeholder, where_values=(id,), **kwargs)
 
     @utils.method_cache
     def __getuserkey(self, id):
-        for (userkey, ) in self._select(what='userkey',
-                where='id=%s' % self.placeholder, where_values=(id, )):
+        for (userkey,) in self._select(what='userkey',
+                                       where='id=%s' % self.placeholder, where_values=(id,)):
             return crypto.aes_decrypt(userkey)
 
     def encrypt(self, id, data):
@@ -116,10 +125,10 @@ class UserDB(BaseDB):
 
         if id:
             where = 'id = %s' % self.placeholder
-            value = (id, )
+            value = (id,)
         elif email:
             where = 'email = %s' % self.placeholder
-            value = (email, )
+            value = (email,)
         else:
             raise self.UserDBException('get user need id or email')
 

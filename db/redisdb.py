@@ -9,8 +9,10 @@ import config
 import logging
 import umsgpack
 
+
 class RedisDB(object):
-    def __init__(self, host=config.redis.host, port=config.redis.port, password=config.redis.passwd, db=config.redis.db, evil=config.evil):
+    def __init__(self, host=config.redis.host, port=config.redis.port, password=config.redis.passwd, db=config.redis.db,
+                 evil=config.evil):
         try:
             import redis
         except ImportError:
@@ -19,7 +21,8 @@ class RedisDB(object):
 
         self.evil_limit = evil
         try:
-            self.client = redis.StrictRedis(host=host, port=port, password=password, db=db, socket_timeout=3, socket_connect_timeout=3)
+            self.client = redis.StrictRedis(host=host, port=port, password=password, db=db, socket_timeout=3,
+                                            socket_connect_timeout=3)
             self.client.ping()
         except redis.exceptions.ConnectionError as e:
             logging.warning(e)
@@ -45,12 +48,12 @@ class RedisDB(object):
             return True
         return False
 
-    def cache(self, key, _lambda, timeout=60*60):
+    def cache(self, key, _lambda, timeout=60 * 60):
         if not self.client:
             return _lambda()
         ret = self.client.get('cache_%s' % key)
         if ret:
-            return umsgpack.unpackb(ret)
+            return umsgpack.unpackb(ret, encoding="utf8")
         ret = _lambda()
-        self.client.set('cache_%s', umsgpack.packb(ret))
+        self.client.set('cache_%s', umsgpack.packb(ret, use_bin_type=True))
         return ret

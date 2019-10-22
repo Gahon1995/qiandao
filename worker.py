@@ -192,7 +192,7 @@ class MainWorker(object):
                 disabled = True
                 next = None
 
-            self.db.tasklog.add(task['id'], success=False, msg=unicode(e))
+            self.db.tasklog.add(task['id'], success=False, msg=str(e))
             self.db.task.mod(task['id'],
                     last_failed=time.time(),
                     failed_count=task['failed_count']+1,
@@ -205,19 +205,19 @@ class MainWorker(object):
             if task['success_count'] and task['last_failed_count'] and user['email_verified'] and user['email']\
                     and self.is_tommorrow(next):
                 try:
-                    _ = yield utils.send_mail(to=user['email'], subject=u"%s - 签到失败%s" % (
-                        tpl['sitename'], u' 已停止' if disabled else u""),
-                    text=u"""
+                    _ = yield utils.send_mail(to=user['email'], subject="%s - 签到失败%s" % (
+                        tpl['sitename'], ' 已停止' if disabled else ""),
+                    text="""
 您的 %(sitename)s [ %(siteurl)s ] 签到任务，执行 %(cnt)d次 失败。%(disable)s
 
 下一次重试在一天之后，为防止签到中断，给您发送这份邮件。
 
 访问： http://%(domain)s/task/%(taskid)s/log 查看日志。
                     """ % dict(
-                        sitename=tpl['sitename'] or u'未命名',
-                        siteurl=tpl['siteurl'] or u'',
+                        sitename=tpl['sitename'] or '未命名',
+                        siteurl=tpl['siteurl'] or '',
                         cnt=task['last_failed_count'] + 1,
-                        disable=u"因连续多次失败，已停止。" if disabled else u"",
+                        disable="因连续多次失败，已停止。" if disabled else "",
                         domain=config.domain,
                         taskid=task['id'],
                         ), async=True)

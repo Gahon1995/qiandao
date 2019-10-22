@@ -19,8 +19,10 @@ logger = logging.getLogger('qiandao.handler')
 
 __ALL__ = ['HTTPError', 'BaseHandler', 'BaseWebSocket', 'BaseUIModule', 'logger', ]
 
+
 class BaseHandler(tornado.web.RequestHandler):
     application_export = set(('db', 'fetcher'))
+
     def __getattr__(self, key):
         if key in self.application_export:
             return getattr(self.application, key)
@@ -33,16 +35,16 @@ class BaseHandler(tornado.web.RequestHandler):
             raise
 
         namespace = dict(
-                static_url=self.static_url,
-                xsrf_token=self.xsrf_token,
+            static_url=self.static_url,
+            xsrf_token=self.xsrf_token,
 
-                handler=self,
-                request=self.request,
-                current_user=self.current_user,
-                locale=self.locale,
-                xsrf_form_html=self.xsrf_form_html,
-                reverse_url=self.reverse_url
-            )
+            handler=self,
+            request=self.request,
+            current_user=self.current_user,
+            locale=self.locale,
+            xsrf_form_html=self.xsrf_form_html,
+            reverse_url=self.reverse_url
+        )
         namespace.update(kwargs)
 
         return template.render(namespace)
@@ -76,7 +78,7 @@ class BaseHandler(tornado.web.RequestHandler):
         ret = self.get_secure_cookie('user', max_age_days=config.cookie_days)
         if not ret:
             return ret
-        user = umsgpack.unpackb(ret)
+        user = umsgpack.unpackb(ret, encoding="utf8")
         user['isadmin'] = 'admin' in user['role'] if user['role'] else False
         return user
 
@@ -104,8 +106,10 @@ class BaseHandler(tornado.web.RequestHandler):
             raise HTTPError(401)
         return obj
 
+
 class BaseWebSocket(tornado.websocket.WebSocketHandler):
     pass
+
 
 class BaseUIModule(tornado.web.UIModule):
     pass

@@ -9,7 +9,7 @@ import json
 import time
 from tornado import gen
 
-from base import *
+from .base import *
 
 class TaskNewHandler(BaseHandler):
     def get(self):
@@ -21,7 +21,7 @@ class TaskNewHandler(BaseHandler):
         if user:
             tpls += sorted(self.db.tpl.list(userid=user['id'], fields=fields, limit=None), key=lambda t: -t['id'])
         if tpls:
-            tpls.append({'id': 0, 'sitename': u'以下为公共模板'})
+            tpls.append({'id': 0, 'sitename': '以下为公共模板'})
         tpls += sorted(self.db.tpl.list(userid=None, fields=fields, limit=None), key=lambda t: -t['success_count'])
 
         if not tplid:
@@ -46,7 +46,7 @@ class TaskNewHandler(BaseHandler):
         tpl = self.check_permission(self.db.tpl.get(tplid, fields=('id', 'userid', 'interval')))
 
         env = {}
-        for key, value in self.request.body_arguments.iteritems():
+        for key, value in self.request.body_arguments.items():
             if key.startswith('_binux_'):
                 continue
             if not value:
@@ -109,7 +109,7 @@ class TaskRunHandler(BaseHandler):
         try:
             new_env = yield self.fetcher.do_fetch(fetch_tpl, env)
         except Exception as e:
-            self.db.tasklog.add(task['id'], success=False, msg=unicode(e))
+            self.db.tasklog.add(task['id'], success=False, msg=str(e))
             self.finish('<h1 class="alert alert-danger text-center">签到失败</h1><div class="well">%s</div>' % e)
             return
 

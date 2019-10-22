@@ -13,8 +13,9 @@ from tornado import gen
 from tornado.ioloop import IOLoop
 
 import config
-from base import *
+from .base import *
 from libs import utils
+
 
 class LoginHandler(BaseHandler):
     def get(self):
@@ -27,34 +28,36 @@ class LoginHandler(BaseHandler):
         email = self.get_argument('email')
         password = self.get_argument('password')
         if not email or not password:
-            self.render('login.html', password_error=u'请输入用户名和密码', email=email)
+            self.render('login.html', password_error='请输入用户名和密码', email=email)
             return
 
         if self.db.user.challenge(email, password):
             user = self.db.user.get(email=email, fields=('id', 'email', 'nickname', 'role'))
             if not user:
-                self.render('login.html', password_error=u'不存在此邮箱或密码错误', email=email)
+                self.render('login.html', password_error='不存在此邮箱或密码错误', email=email)
                 return
 
             setcookie = dict(
-                    expires_days=config.cookie_days,
-                    httponly=True,
-                    )
+                expires_days=config.cookie_days,
+                httponly=True,
+            )
             if config.https:
                 setcookie['secure'] = True
-            self.set_secure_cookie('user', umsgpack.packb(user), **setcookie)
+            self.set_secure_cookie('user', umsgpack.packb(user, use_bin_type=True), **setcookie)
             self.db.user.mod(user['id'], atime=time.time(), aip=self.ip2int)
-            
+
             next = self.get_argument('next', '/my/')
             self.redirect(next)
         else:
             self.evil(+5)
-            self.render('login.html', password_error=u'不存在此邮箱或密码错误', email=email)
+            self.render('login.html', password_error='不存在此邮箱或密码错误', email=email)
+
 
 class LogoutHandler(BaseHandler):
     def get(self):
         self.clear_all_cookies()
         self.redirect('/')
+
 
 class RegisterHandler(BaseHandler):
     def get(self):
@@ -70,30 +73,30 @@ class RegisterHandler(BaseHandler):
         password = self.get_argument('password')
 
         if not email:
-            self.render('register.html', email_error=u'请输入邮箱')
+            self.render('register.html', email_error='请输入邮箱')
             return
         if email.count('@') != 1 or email.count('.') == 0:
-            self.render('register.html', email_error=u'邮箱格式不正确')
+            self.render('register.html', email_error='邮箱格式不正确')
             return
         if len(password) < 6:
-            self.render('register.html', password_error=u'密码需要大于6位', email=email)
+            self.render('register.html', password_error='密码需要大于6位', email=email)
             return
 
         try:
             self.db.user.add(email=email, password=password, ip=self.ip2int)
         except self.db.user.DeplicateUser as e:
             self.evil(+3)
-            self.render('register.html', email_error=u'email地址已注册')
+            self.render('register.html', email_error='email地址已注册')
             return
         user = self.db.user.get(email=email, fields=('id', 'email', 'nickname', 'role'))
 
         setcookie = dict(
-                expires_days=config.cookie_days,
-                httponly=True,
-                )
+            expires_days=config.cookie_days,
+            httponly=True,
+        )
         if config.https:
             setcookie['secure'] = True
-        self.set_secure_cookie('user', umsgpack.packb(user), **setcookie)
+        self.set_secure_cookie('user', umsgpack.packb(user, use_bin_type=True), **setcookie)
 
         next = self.get_argument('next', '/my/')
         self.redirect(next)
@@ -106,7 +109,7 @@ class RegisterHandler(BaseHandler):
         verified_code = self.db.user.encrypt(user['id'], verified_code)
         verified_code = self.db.user.encrypt(0, [user['id'], verified_code])
         verified_code = base64.b64encode(verified_code)
-        future = utils.send_mail(to=user['email'], subject=u"欢迎注册 签到", html=u"""
+        future = utils.send_mail(to=user['email'], subject="欢迎注册 签到", html="""
 
         <h1 style="margin-left: 30px;">签到<sup>alpha</sup></h1>
 
@@ -129,6 +132,7 @@ class RegisterHandler(BaseHandler):
             future.add_done_callback(get_result)
         return future
 
+
 class VerifyHandler(BaseHandler):
     def get(self, code):
         try:
@@ -142,9 +146,9 @@ class VerifyHandler(BaseHandler):
             assert user['email'] == email
 
             self.db.user.mod(userid,
-                    email_verified=True,
-                    mtime=time.time()
-                    )
+                             email_verified=True,
+                             mtime=time.time()
+                             )
             self.finish('验证成功')
         except Exception as e:
             self.evil(+5)
@@ -182,10 +186,10 @@ class PasswordResetHandler(BaseHandler):
             email = self.get_argument('email')
             if not email:
                 return self.render('password_reset_email.html',
-                                   email_error=u'请输入邮箱')
+                                   email_error='请输入邮箱')
             if email.count('@') != 1 or email.count('.') == 0:
                 return self.render('password_reset_email.html',
-                                   email_error=u'邮箱格式不正确')
+                                   email_error='邮箱格式不正确')
 
             user = self.db.user.get(email=email, fields=('id', 'email', 'mtime', 'nickname', 'role'))
             if user:
@@ -198,7 +202,7 @@ class PasswordResetHandler(BaseHandler):
         else:
             password = self.get_argument('password')
             if len(password) < 6:
-                return self.render('password_reset.html', password_error=u'密码需要大于6位')
+                return self.render('password_reset.html', password_error='密码需要大于6位')
 
             try:
                 verified_code = base64.b64decode(code)
@@ -227,7 +231,7 @@ class PasswordResetHandler(BaseHandler):
         verified_code = self.db.user.encrypt(0, [user['id'], verified_code])
         verified_code = base64.b64encode(verified_code)
 
-        future = utils.send_mail(to=user['email'], subject=u"签到(qiandao.today) 密码重置", html=u"""
+        future = utils.send_mail(to=user['email'], subject="签到(qiandao.today) 密码重置", html="""
 
         <h1 style="margin-left: 30px;">签到<sup>alpha</sup></h1>
 
@@ -244,14 +248,16 @@ class PasswordResetHandler(BaseHandler):
                 return future.result()
             except Exception as e:
                 logging.error(e)
+
         if future:
             future.add_done_callback(get_result)
         return future
 
+
 handlers = [
-        ('/login', LoginHandler),
-        ('/logout', LogoutHandler),
-        ('/register', RegisterHandler),
-        ('/verify/(.*)', VerifyHandler),
-        ('/password_reset/?(.*)', PasswordResetHandler),
-        ]
+    ('/login', LoginHandler),
+    ('/logout', LogoutHandler),
+    ('/register', RegisterHandler),
+    ('/verify/(.*)', VerifyHandler),
+    ('/password_reset/?(.*)', PasswordResetHandler),
+]

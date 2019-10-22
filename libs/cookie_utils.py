@@ -6,10 +6,11 @@
 # Created on 2012-09-12 22:39:57
 # form requests&tornado
 
-import UserDict
-import cookielib
-from urlparse import urlparse
+from collections import MutableMapping as DictMixin
+import http.cookiejar
+from urllib.parse import urlparse
 from tornado import httpclient, httputil
+
 
 class MockRequest(object):
     """Wraps a `tornado.httpclient.HTTPRequest` to mimic a `urllib2.Request`.
@@ -26,6 +27,7 @@ class MockRequest(object):
     def __init__(self, request):
         self._r = request
         self._new_headers = {}
+        self.unverifiable = False
 
     def get_type(self):
         return urlparse(self._r.url).scheme
@@ -80,6 +82,7 @@ class MockResponse(object):
     def getheaders(self, name):
         self._headers.get_list(name)
 
+
 def create_cookie(name, value, httpOnly=None, **kwargs):
     """Make a cookie from underspecified parameters.
 
@@ -100,7 +103,7 @@ def create_cookie(name, value, httpOnly=None, **kwargs):
         comment_url=None,
         rest={'HttpOnly': httpOnly},
         rfc2109=False,
-        )
+    )
 
     badargs = set(kwargs) - set(result)
     if badargs:
@@ -113,15 +116,17 @@ def create_cookie(name, value, httpOnly=None, **kwargs):
     result['domain_initial_dot'] = result['domain'].startswith('.')
     result['path_specified'] = bool(result['path'])
 
-    return cookielib.Cookie(**result)
+    return http.cookiejar.Cookie(**result)
+
 
 def dump_cookie(cookie):
     result = {}
     for key in ('name', 'value', 'expires', 'secure', 'port', 'domain', 'path',
-            'discard', 'comment', 'comment_url', 'rfc2109'):
+                'discard', 'comment', 'comment_url', 'rfc2109'):
         result[key] = getattr(cookie, key)
     result['rest'] = cookie._rest
     return result
+
 
 def remove_cookie_by_name(cookiejar, name, domain=None, path=None):
     """Unsets a cookie by name, by default over all domains and paths.
@@ -138,7 +143,8 @@ def remove_cookie_by_name(cookiejar, name, domain=None, path=None):
     for domain, path, name in clearables:
         cookiejar.clear(domain, path, name)
 
-class CookieSession(cookielib.CookieJar, UserDict.DictMixin):
+
+class CookieSession(http.cookiejar.CookieJar, DictMixin):
     def extract_cookies_to_jar(self, request, response):
         """Extract the cookies from the response into a CookieJar.
 
@@ -152,7 +158,9 @@ class CookieSession(cookielib.CookieJar, UserDict.DictMixin):
         headers = response
         if not hasattr(headers, "keys"):
             headers = headers.headers
-        headers.getheaders = headers.get_list
+        from urllib3._collections import HTTPHeaderDict
+        headers = HTTPHeaderDict(dict(headers.get_all()))
+        # headers.get_all = headers.get_list
         res = MockResponse(headers)
         self.extract_cookies(res, req)
 
@@ -168,14 +176,14 @@ class CookieSession(cookielib.CookieJar, UserDict.DictMixin):
 
     def to_json(self):
         result = []
-        for cookie in cookielib.CookieJar.__iter__(self):
+        for cookie in http.cookiejar.CookieJar.__iter__(self):
             result.append(dump_cookie(cookie))
         return result
 
     def __getitem__(self, name):
-        if isinstance(name, cookielib.Cookie):
+        if isinstance(name, http.cookiejar.Cookie):
             return name.value
-        for cookie in cookielib.CookieJar.__iter__(self):
+        for cookie in http.cookiejar.CookieJar.__iter__(self):
             if cookie.name == name:
                 return cookie.value
         raise KeyError(name)
@@ -191,15 +199,16 @@ class CookieSession(cookielib.CookieJar, UserDict.DictMixin):
 
     def keys(self):
         result = []
-        for cookie in cookielib.CookieJar.__iter__(self):
+        for cookie in http.cookiejar.CookieJar.__iter__(self):
             result.append(cookie.name)
         return result
 
     def to_dict(self):
         result = {}
-        for key in self.keys():
+        for key in list(self.keys()):
             result[key] = self.get(key)
         return result
+
 
 class CookieTracker:
     def __init__(self):
@@ -207,6 +216,7 @@ class CookieTracker:
 
     def get_header_callback(self):
         _self = self
+
         def header_callback(header):
             header = header.strip()
             if header.starswith("HTTP/"):
@@ -214,4 +224,5 @@ class CookieTracker:
             if not header:
                 return
             _self.headers.parse_line(header)
+
         return header_callback
