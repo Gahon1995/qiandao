@@ -13,6 +13,7 @@ import config
 from libs import utils
 from .basedb import BaseDB
 
+
 class TPLDB(BaseDB):
     '''
     tpl db
@@ -22,42 +23,42 @@ class TPLDB(BaseDB):
     __tablename__ = 'tpl'
 
     def __init__(self, host=config.mysql.host, port=config.mysql.port,
-            database=config.mysql.database, user=config.mysql.user, passwd=config.mysql.passwd):
+                 database=config.mysql.database, user=config.mysql.user, passwd=config.mysql.passwd):
         import mysql.connector
         self.conn = mysql.connector.connect(user=user, password=passwd, host=host, port=port,
-                database=database, autocommit=True)
+                                            database=database, autocommit=True)
 
     def add(self, userid, har, tpl, variables, interval=None):
         now = time.time()
 
         insert = dict(
-                userid = userid,
-                siteurl = None,
-                sitename = None,
-                banner = None,
-                disabled = 0,
-                public = 0,
-                fork = None,
-                har = har,
-                tpl = tpl,
-                variables = variables,
-                interval = interval,
-                ctime = now,
-                mtime = now,
-                atime = now,
-                last_success = None,
-                )
+            userid=userid,
+            siteurl=None,
+            sitename=None,
+            banner=None,
+            disabled=0,
+            public=0,
+            fork=None,
+            har=har,
+            tpl=tpl,
+            variables=variables,
+            interval=interval,
+            ctime=now,
+            mtime=now,
+            atime=now,
+            last_success=None,
+        )
         return self._insert(**insert)
 
     def mod(self, id, **kwargs):
-        return self._update(where="id=%s" % self.placeholder, where_values=(id, ), **kwargs)
+        return self._update(where="id=%s" % self.placeholder, where_values=(id,), **kwargs)
 
     def get(self, id, fields=None):
-        for tpl in self._select2dic(what=fields, where='id=%s' % self.placeholder, where_values=(id, )):
+        for tpl in self._select2dic(what=fields, where='id=%s' % self.placeholder, where_values=(id,)):
             return tpl
 
     def delete(self, id):
-        self._delete(where="id=%s" % self.placeholder, where_values=(id, ))
+        self._delete(where="id=%s" % self.placeholder, where_values=(id,))
 
     def incr_success(self, id):
         self._execute('UPDATE %s SET success_count=success_count+1, last_success=%d WHERE `id`=%d' % (

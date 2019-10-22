@@ -6,6 +6,7 @@
 # Created on 2012-08-30 17:43:49
 
 import logging
+
 logger = logging.getLogger('qiandao.basedb')
 
 import os

@@ -12,6 +12,7 @@ from datetime import datetime
 
 from .base import *
 
+
 class PushListHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self, status=None):
@@ -22,27 +23,28 @@ class PushListHandler(BaseHandler):
         def get_user(userid):
             if not userid:
                 return dict(
-                        nickname = '公开',
-                        email = None,
-                        email_verified = True,
-                        )
+                    nickname='公开',
+                    email=None,
+                    email_verified=True,
+                )
             if isadmin:
                 user = self.db.user.get(userid, fields=('id', 'nickname', 'email', 'email_verified'))
             else:
                 user = self.db.user.get(userid, fields=('id', 'nickname'))
             if not user:
                 return dict(
-                        nickname = '公开',
-                        email = None,
-                        email_verified = False,
-                        )
+                    nickname='公开',
+                    email=None,
+                    email_verified=False,
+                )
             return user
 
         @utils.func_cache
         def get_tpl(tplid):
             if not tplid:
                 return {}
-            tpl = self.db.tpl.get(tplid, fields=('id', 'userid', 'sitename', 'siteurl', 'banner', 'note', 'ctime', 'mtime', 'last_success'))
+            tpl = self.db.tpl.get(tplid, fields=(
+                'id', 'userid', 'sitename', 'siteurl', 'banner', 'note', 'ctime', 'mtime', 'last_success'))
             return tpl or {}
 
         def join(pr):
@@ -56,20 +58,21 @@ class PushListHandler(BaseHandler):
         _f = {}
         if status is not None:
             _f['status'] = status
-        for each in self.db.push_request.list(from_userid = user['id'], **_f):
+        for each in self.db.push_request.list(from_userid=user['id'], **_f):
             pushs.append(join(each))
         if isadmin:
-            for each in self.db.push_request.list(from_userid = None, **_f):
+            for each in self.db.push_request.list(from_userid=None, **_f):
                 pushs.append(join(each))
 
         pulls = []
-        for each in self.db.push_request.list(to_userid = user['id'], **_f):
+        for each in self.db.push_request.list(to_userid=user['id'], **_f):
             pulls.append(join(each))
         if isadmin:
-            for each in self.db.push_request.list(to_userid = None, **_f):
+            for each in self.db.push_request.list(to_userid=None, **_f):
                 pulls.append(join(each))
 
         self.render('push_list.html', pushs=pushs, pulls=pulls)
+
 
 class PushActionHandler(BaseHandler):
     @tornado.web.authenticated
@@ -90,7 +93,7 @@ class PushActionHandler(BaseHandler):
                     break
                 self.evil(+5)
                 raise HTTPError(401)
-        elif action in ('cancel', ):
+        elif action in ('cancel',):
             while True:
                 if pr['from_userid'] == user['id']:
                     break
@@ -102,14 +105,15 @@ class PushActionHandler(BaseHandler):
         getattr(self, action)(pr)
 
         tpl_lock = len(list(self.db.push_request.list(from_tplid=pr['from_tplid'],
-            status=self.db.push_request.PENDING, fields='1')))
+                                                      status=self.db.push_request.PENDING, fields='1')))
         if not tpl_lock:
             self.db.tpl.mod(pr['from_tplid'], lock=False)
 
         self.redirect('/pushs')
 
     def accept(self, pr):
-        tplobj = self.db.tpl.get(pr['from_tplid'], fields=('id', 'userid', 'tpl', 'variables', 'sitename', 'siteurl', 'note', 'banner', 'interval'))
+        tplobj = self.db.tpl.get(pr['from_tplid'], fields=(
+            'id', 'userid', 'tpl', 'variables', 'sitename', 'siteurl', 'note', 'banner', 'interval'))
         if not tplobj:
             self.cancel(pr)
             raise HTTPError(404)
@@ -121,33 +125,33 @@ class PushActionHandler(BaseHandler):
 
         if not pr['to_tplid']:
             tplid = self.db.tpl.add(
-                    userid = pr['to_userid'],
-                    har = har,
-                    tpl = tpl,
-                    variables = tplobj['variables'],
-                    interval = tplobj['interval'],
-                    )
+                userid=pr['to_userid'],
+                har=har,
+                tpl=tpl,
+                variables=tplobj['variables'],
+                interval=tplobj['interval'],
+            )
             self.db.tpl.mod(tplid,
-                    sitename = tplobj['sitename'],
-                    siteurl = tplobj['siteurl'],
-                    banner = tplobj['banner'],
-                    note = tplobj['note'],
-                    fork = pr['from_tplid'],
-                    )
+                            sitename=tplobj['sitename'],
+                            siteurl=tplobj['siteurl'],
+                            banner=tplobj['banner'],
+                            note=tplobj['note'],
+                            fork=pr['from_tplid'],
+                            )
         else:
             tplid = pr['to_tplid']
             self.db.tpl.mod(tplid,
-                    har = har,
-                    tpl = tpl,
-                    variables = tplobj['variables'],
-                    interval = tplobj['interval'],
-                    sitename = tplobj['sitename'],
-                    siteurl = tplobj['siteurl'],
-                    banner = tplobj['banner'],
-                    note = tplobj['note'],
-                    fork = pr['from_tplid'],
-                    mtime = time.time(),
-                    )
+                            har=har,
+                            tpl=tpl,
+                            variables=tplobj['variables'],
+                            interval=tplobj['interval'],
+                            sitename=tplobj['sitename'],
+                            siteurl=tplobj['siteurl'],
+                            banner=tplobj['banner'],
+                            note=tplobj['note'],
+                            fork=pr['from_tplid'],
+                            mtime=time.time(),
+                            )
         self.db.push_request.mod(pr['id'], status=self.db.push_request.ACCEPT)
 
     def cancel(self, pr):
@@ -159,6 +163,7 @@ class PushActionHandler(BaseHandler):
         if reject_message:
             self.db.push_request.mod(pr['id'], msg=reject_message)
 
+
 class PushViewHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self, prid):
@@ -167,7 +172,8 @@ class PushViewHandler(BaseHandler):
     @tornado.web.authenticated
     def post(self, prid):
         user = self.current_user
-        pr = self.db.push_request.get(prid, fields=('id', 'from_tplid', 'from_userid', 'to_tplid', 'to_userid', 'status'))
+        pr = self.db.push_request.get(prid,
+                                      fields=('id', 'from_tplid', 'from_userid', 'to_tplid', 'to_userid', 'status'))
         if not pr:
             self.evil(+1)
             raise HTTPError(404)
@@ -187,29 +193,31 @@ class PushViewHandler(BaseHandler):
             self.evil(+5)
             raise HTTPError(401)
 
-        tpl = self.db.tpl.get(pr['from_tplid'], fields=('id', 'userid', 'sitename', 'siteurl', 'banner', 'note', 'tpl', 'variables'))
+        tpl = self.db.tpl.get(pr['from_tplid'],
+                              fields=('id', 'userid', 'sitename', 'siteurl', 'banner', 'note', 'tpl', 'variables'))
         if not tpl:
             self.evil(+1)
             raise HTTPError(404)
 
         tpl['har'] = self.fetcher.tpl2har(
-                self.db.user.decrypt(pr['from_userid'], tpl['tpl']))
+            self.db.user.decrypt(pr['from_userid'], tpl['tpl']))
         tpl['variables'] = json.loads(tpl['variables'])
         self.finish(dict(
-            filename = tpl['sitename'] or '未命名模板',
-            har = tpl['har'],
-            env = dict((x, '') for x in tpl['variables']),
-            setting = dict(
-                sitename = tpl['sitename'],
-                siteurl = tpl['siteurl'],
-                banner = tpl['banner'],
-                note = tpl['note'],
-                ),
-            readonly = True,
-            ))
+            filename=tpl['sitename'] or '未命名模板',
+            har=tpl['har'],
+            env=dict((x, '') for x in tpl['variables']),
+            setting=dict(
+                sitename=tpl['sitename'],
+                siteurl=tpl['siteurl'],
+                banner=tpl['banner'],
+                note=tpl['note'],
+            ),
+            readonly=True,
+        ))
+
 
 handlers = [
-        ('/pushs/?(\d+)?', PushListHandler),
-        ('/push/(\d+)/(cancel|accept|refuse)', PushActionHandler),
-        ('/push/(\d+)/view', PushViewHandler),
-        ]
+    ('/pushs/?(\d+)?', PushListHandler),
+    ('/push/(\d+)/(cancel|accept|refuse)', PushActionHandler),
+    ('/push/(\d+)/view', PushViewHandler),
+]

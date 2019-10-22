@@ -8,6 +8,7 @@
 import json
 from .base import *
 
+
 class IndexHandlers(BaseHandler):
     def get(self):
         if self.current_user:
@@ -26,11 +27,13 @@ class IndexHandlers(BaseHandler):
                     tplid = tpl['id']
                     break
         tplid = int(tplid)
-        tpl = self.check_permission(self.db.tpl.get(tplid, fields=('id', 'userid', 'sitename', 'siteurl', 'note', 'variables')))
+        tpl = self.check_permission(
+            self.db.tpl.get(tplid, fields=('id', 'userid', 'sitename', 'siteurl', 'note', 'variables')))
         variables = json.loads(tpl['variables'])
-        
+
         return self.render('index.html', tpls=tpls, tplid=tplid, tpl=tpl, variables=variables)
 
+
 handlers = [
-        ('/', IndexHandlers),
-        ]
+    ('/', IndexHandlers),
+]

@@ -14,6 +14,7 @@ from libs import utils
 
 from .base import *
 
+
 class HAREditor(BaseHandler):
     def get(self, id=None):
         return self.render('har/editor.html', tplid=id)
@@ -22,26 +23,27 @@ class HAREditor(BaseHandler):
         user = self.current_user
 
         tpl = self.check_permission(
-                self.db.tpl.get(id, fields=('id', 'userid', 'sitename', 'siteurl', 'banner', 'note', 'interval',
-                    'har', 'variables', 'lock')))
+            self.db.tpl.get(id, fields=('id', 'userid', 'sitename', 'siteurl', 'banner', 'note', 'interval',
+                                        'har', 'variables', 'lock')))
 
         tpl['har'] = self.db.user.decrypt(tpl['userid'], tpl['har'])
         tpl['variables'] = json.loads(tpl['variables'])
 
-        #self.db.tpl.mod(id, atime=time.time())
+        # self.db.tpl.mod(id, atime=time.time())
         self.finish(dict(
-            filename = tpl['sitename'] or '未命名模板',
-            har = tpl['har'],
-            env = dict((x, '') for x in tpl['variables']),
-            setting = dict(
-                sitename = tpl['sitename'],
-                siteurl = tpl['siteurl'],
-                note = tpl['note'],
-                banner = tpl['banner'],
-                interval = tpl['interval'] or '',
-                ),
-            readonly = not tpl['userid'] or not self.permission(tpl, 'w') or tpl['lock'],
-            ))
+            filename=tpl['sitename'] or '未命名模板',
+            har=tpl['har'],
+            env=dict((x, '') for x in tpl['variables']),
+            setting=dict(
+                sitename=tpl['sitename'],
+                siteurl=tpl['siteurl'],
+                note=tpl['note'],
+                banner=tpl['banner'],
+                interval=tpl['interval'] or '',
+            ),
+            readonly=not tpl['userid'] or not self.permission(tpl, 'w') or tpl['lock'],
+        ))
+
 
 class HARTest(BaseHandler):
     @gen.coroutine
@@ -52,15 +54,16 @@ class HARTest(BaseHandler):
         ret = yield self.fetcher.fetch(data)
 
         result = {
-                'success': ret['success'],
-                'har': self.fetcher.response2har(ret['response']),
-                'env': {
-                    'variables': ret['env']['variables'],
-                    'session': ret['env']['session'].to_json(),
-                    }
-                }
+            'success': ret['success'],
+            'har': self.fetcher.response2har(ret['response']),
+            'env': {
+                'variables': ret['env']['variables'],
+                'session': ret['env']['session'].to_json(),
+            }
+        }
 
         self.finish(result)
+
 
 class HARSave(BaseHandler):
     @staticmethod
@@ -126,21 +129,22 @@ class HARSave(BaseHandler):
 
         setting = data.get('setting', {})
         self.db.tpl.mod(id,
-                sitename=setting.get('sitename'),
-                siteurl=setting.get('siteurl'),
-                note=setting.get('note'),
-                interval=setting.get('interval') or None,
-                mtime=time.time())
+                        sitename=setting.get('sitename'),
+                        siteurl=setting.get('siteurl'),
+                        note=setting.get('note'),
+                        interval=setting.get('interval') or None,
+                        mtime=time.time())
         self.finish({
             'id': id
-            })
+        })
+
 
 handlers = [
-        (r'/tpl/(\d+)/edit', HAREditor),
-        (r'/tpl/(\d+)/save', HARSave),
+    (r'/tpl/(\d+)/edit', HAREditor),
+    (r'/tpl/(\d+)/save', HARSave),
 
-        (r'/har/edit', HAREditor),
-        (r'/har/save/?(\d+)?', HARSave),
+    (r'/har/edit', HAREditor),
+    (r'/har/save/?(\d+)?', HARSave),
 
-        (r'/har/test', HARTest),
-        ]
+    (r'/har/test', HARTest),
+]

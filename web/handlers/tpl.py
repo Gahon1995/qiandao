@@ -10,6 +10,7 @@ from tornado import gen
 from .base import *
 from libs import utils
 
+
 class TPLPushHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self, tplid):
@@ -26,7 +27,7 @@ class TPLPushHandler(BaseHandler):
     def post(self, tplid):
         user = self.current_user
         tplid = int(tplid)
-        tpl = self.db.tpl.get(tplid, fields=('id', 'userid', ))
+        tpl = self.db.tpl.get(tplid, fields=('id', 'userid',))
         if not self.permission(tpl, 'w'):
             self.evil(+5)
             self.finish('<span class="alert alert-danger">没有权限</span>')
@@ -38,7 +39,7 @@ class TPLPushHandler(BaseHandler):
             to_tplid = None
             to_userid = None
         else:
-            totpl = self.db.tpl.get(to_tplid, fields=('id', 'userid', ))
+            totpl = self.db.tpl.get(to_tplid, fields=('id', 'userid',))
             if not totpl:
                 self.evil(+1)
                 self.finish('<span class="alert alert-danger">模板不存在</span>')
@@ -46,11 +47,12 @@ class TPLPushHandler(BaseHandler):
             to_userid = totpl['userid']
 
         self.db.push_request.add(from_tplid=tpl['id'], from_userid=user['id'],
-                to_tplid=to_tplid, to_userid=to_userid, msg=msg)
+                                 to_tplid=to_tplid, to_userid=to_userid, msg=msg)
         self.db.tpl.mod(tpl['id'], lock=True)
 
-        #referer = self.request.headers.get('referer', '/my/')
+        # referer = self.request.headers.get('referer', '/my/')
         self.redirect('/pushs')
+
 
 class TPLVarHandler(BaseHandler):
     def get(self, tplid):
@@ -62,6 +64,7 @@ class TPLVarHandler(BaseHandler):
             return
         self.render('task_new_var.html', tpl=tpl, variables=json.loads(tpl['variables']))
 
+
 class TPLDelHandler(BaseHandler):
     @tornado.web.authenticated
     def post(self, tplid):
@@ -71,6 +74,7 @@ class TPLDelHandler(BaseHandler):
         self.db.tpl.delete(tplid)
         referer = self.request.headers.get('referer', '/my/')
         self.redirect(referer)
+
 
 class TPLRunHandler(BaseHandler):
     @gen.coroutine
@@ -86,7 +90,7 @@ class TPLRunHandler(BaseHandler):
         fetch_tpl = None
         if tplid:
             tpl = self.check_permission(self.db.tpl.get(tplid, fields=('id', 'userid', 'sitename',
-                'siteurl', 'tpl', 'interval', 'last_success')))
+                                                                       'siteurl', 'tpl', 'interval', 'last_success')))
             fetch_tpl = self.db.user.decrypt(tpl['userid'], tpl['tpl'])
 
         if not fetch_tpl:
@@ -102,9 +106,9 @@ class TPLRunHandler(BaseHandler):
         if not env:
             try:
                 env = dict(
-                    variables = json.loads(self.get_argument('env')),
-                    session = []
-                    )
+                    variables=json.loads(self.get_argument('env')),
+                    session=[]
+                )
             except:
                 raise HTTPError(400)
 
@@ -119,20 +123,24 @@ class TPLRunHandler(BaseHandler):
 
         if tpl:
             self.db.tpl.incr_success(tpl['id'])
-        self.render('tpl_run_success.html', log = result.get('variables', {}).get('__log__'))
+        self.render('tpl_run_success.html', log=result.get('variables', {}).get('__log__'))
         return
+
 
 class PublicTPLHandler(BaseHandler):
     def get(self):
-        tpls = self.db.tpl.list(userid=None, limit=None, fields=('id', 'siteurl', 'sitename', 'banner', 'note', 'disabled', 'lock', 'last_success', 'ctime', 'mtime', 'fork', 'success_count'))
+        tpls = self.db.tpl.list(userid=None, limit=None, fields=(
+            'id', 'siteurl', 'sitename', 'banner', 'note', 'disabled', 'lock', 'last_success', 'ctime', 'mtime', 'fork',
+            'success_count'))
         tpls = sorted(tpls, key=lambda t: -t['success_count'])
 
         self.render('tpls_public.html', tpls=tpls)
 
+
 handlers = [
-        ('/tpl/(\d+)/push', TPLPushHandler),
-        ('/tpl/(\d+)/var', TPLVarHandler),
-        ('/tpl/(\d+)/del', TPLDelHandler),
-        ('/tpl/?(\d+)?/run', TPLRunHandler),
-        ('/tpls/public', PublicTPLHandler),
-        ]
+    ('/tpl/(\d+)/push', TPLPushHandler),
+    ('/tpl/(\d+)/var', TPLVarHandler),
+    ('/tpl/(\d+)/del', TPLDelHandler),
+    ('/tpl/?(\d+)?/run', TPLRunHandler),
+    ('/tpls/public', PublicTPLHandler),
+]

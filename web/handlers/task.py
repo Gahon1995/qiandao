@@ -11,6 +11,7 @@ from tornado import gen
 
 from .base import *
 
+
 class TaskNewHandler(BaseHandler):
     def get(self):
         user = self.current_user
@@ -31,9 +32,10 @@ class TaskNewHandler(BaseHandler):
                     break
         tplid = int(tplid)
 
-        tpl = self.check_permission(self.db.tpl.get(tplid, fields=('id', 'userid', 'note', 'sitename', 'siteurl', 'variables')))
+        tpl = self.check_permission(
+            self.db.tpl.get(tplid, fields=('id', 'userid', 'note', 'sitename', 'siteurl', 'variables')))
         variables = json.loads(tpl['variables'])
-        
+
         self.render('task_new.html', tpls=tpls, tplid=tplid, tpl=tpl, variables=variables, task={})
 
     @tornado.web.authenticated
@@ -58,7 +60,7 @@ class TaskNewHandler(BaseHandler):
             taskid = self.db.task.add(tplid, user['id'], env)
 
             if tested:
-                self.db.task.mod(taskid, note=note, next=time.time() + (tpl['interval'] or 24*60*60))
+                self.db.task.mod(taskid, note=note, next=time.time() + (tpl['interval'] or 24 * 60 * 60))
             else:
                 self.db.task.mod(taskid, note=note, next=time.time() + 15)
         else:
@@ -69,21 +71,23 @@ class TaskNewHandler(BaseHandler):
             init_env = self.db.user.encrypt(user['id'], init_env)
             self.db.task.mod(taskid, init_env=init_env, env=None, session=None, note=note)
 
-        #referer = self.request.headers.get('referer', '/my/')
+        # referer = self.request.headers.get('referer', '/my/')
         self.redirect('/my/')
+
 
 class TaskEditHandler(TaskNewHandler):
     @tornado.web.authenticated
     def get(self, taskid):
         user = self.current_user
         task = self.check_permission(self.db.task.get(taskid, fields=('id', 'userid',
-            'tplid', 'disabled', 'note')), 'w')
+                                                                      'tplid', 'disabled', 'note')), 'w')
 
         tpl = self.check_permission(self.db.tpl.get(task['tplid'], fields=('id', 'userid', 'note',
-            'sitename', 'siteurl', 'variables')))
+                                                                           'sitename', 'siteurl', 'variables')))
 
         variables = json.loads(tpl['variables'])
         self.render('task_new.html', tpls=[tpl, ], tplid=tpl['id'], tpl=tpl, variables=variables, task=task)
+
 
 class TaskRunHandler(BaseHandler):
     @tornado.web.authenticated
@@ -93,18 +97,21 @@ class TaskRunHandler(BaseHandler):
 
         user = self.current_user
         task = self.check_permission(self.db.task.get(taskid, fields=('id', 'tplid', 'userid', 'init_env',
-            'env', 'session', 'last_success', 'last_failed', 'success_count',
-            'failed_count', 'last_failed_count', 'next', 'disabled')), 'w')
+                                                                      'env', 'session', 'last_success', 'last_failed',
+                                                                      'success_count',
+                                                                      'failed_count', 'last_failed_count', 'next',
+                                                                      'disabled')), 'w')
 
         tpl = self.check_permission(self.db.tpl.get(task['tplid'], fields=('id', 'userid', 'sitename',
-            'siteurl', 'tpl', 'interval', 'last_success')))
+                                                                           'siteurl', 'tpl', 'interval',
+                                                                           'last_success')))
 
         fetch_tpl = self.db.user.decrypt(
-                0 if not tpl['userid'] else task['userid'], tpl['tpl'])
+            0 if not tpl['userid'] else task['userid'], tpl['tpl'])
         env = dict(
-                variables = self.db.user.decrypt(task['userid'], task['init_env']),
-                session = [],
-                )
+            variables=self.db.user.decrypt(task['userid'], task['init_env']),
+            session=[],
+        )
 
         try:
             new_env = yield self.fetcher.do_fetch(fetch_tpl, env)
@@ -115,15 +122,16 @@ class TaskRunHandler(BaseHandler):
 
         self.db.tasklog.add(task['id'], success=True, msg=new_env['variables'].get('__log__'))
         self.db.task.mod(task['id'],
-                disabled = False,
-                last_success = time.time(),
-                last_failed_count = 0,
-                success_count = task['success_count'] + 1,
-                mtime = time.time(),
-                next = time.time() + (tpl['interval'] if tpl['interval'] else 24 * 60 * 60))
+                         disabled=False,
+                         last_success=time.time(),
+                         last_failed_count=0,
+                         success_count=task['success_count'] + 1,
+                         mtime=time.time(),
+                         next=time.time() + (tpl['interval'] if tpl['interval'] else 24 * 60 * 60))
         self.db.tpl.incr_success(tpl['id'])
         self.finish('<h1 class="alert alert-success text-center">签到成功</h1>')
         return
+
 
 class TaskLogHandler(BaseHandler):
     @tornado.web.authenticated
@@ -131,24 +139,26 @@ class TaskLogHandler(BaseHandler):
         user = self.current_user
         task = self.check_permission(self.db.task.get(taskid, fields=('id', 'tplid', 'userid', 'disabled')))
 
-        tasklog = self.db.tasklog.list(taskid = taskid, fields=('success', 'ctime', 'msg'))
+        tasklog = self.db.tasklog.list(taskid=taskid, fields=('success', 'ctime', 'msg'))
 
         self.render('tasklog.html', task=task, tasklog=tasklog)
+
 
 class TaskDelHandler(BaseHandler):
     @tornado.web.authenticated
     def post(self, taskid):
         user = self.current_user
-        task = self.check_permission(self.db.task.get(taskid, fields=('id', 'userid', )), 'w')
+        task = self.check_permission(self.db.task.get(taskid, fields=('id', 'userid',)), 'w')
 
         self.db.task.delete(task['id'])
         referer = self.request.headers.get('referer', '/my/')
         self.redirect(referer)
 
+
 handlers = [
-        ('/task/new', TaskNewHandler),
-        ('/task/(\d+)/edit', TaskEditHandler),
-        ('/task/(\d+)/del', TaskDelHandler),
-        ('/task/(\d+)/log', TaskLogHandler),
-        ('/task/(\d+)/run', TaskRunHandler),
-        ]
+    ('/task/new', TaskNewHandler),
+    ('/task/(\d+)/edit', TaskEditHandler),
+    ('/task/(\d+)/del', TaskDelHandler),
+    ('/task/(\d+)/log', TaskLogHandler),
+    ('/task/(\d+)/run', TaskRunHandler),
+]

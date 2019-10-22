@@ -12,6 +12,7 @@ change the role of user
 
 import sys
 import config
+
 if config.db_type == 'sqlite3':
     import sqlite3_db as db
 else:

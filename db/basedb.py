@@ -6,12 +6,15 @@
 # Created on 2012-08-30 17:43:49
 
 import logging
+
 logger = logging.getLogger('qiandao.basedb')
+
 
 def tostr(s):
     if isinstance(s, bytearray):
         return str(s)
     return s
+
 
 class BaseDB(object):
     '''
@@ -39,7 +42,7 @@ class BaseDB(object):
         dbcur = self.dbcur
         dbcur.execute(sql_query, values)
         return dbcur
-    
+
     def _select(self, tablename=None, what="*", where="", where_values=[], offset=0, limit=None):
         tablename = self.escape(tablename or self.__tablename__)
         if isinstance(what, list) or isinstance(what, tuple) or what is None:
@@ -68,7 +71,7 @@ class BaseDB(object):
 
         for row in dbcur:
             yield dict(list(zip(fields, [tostr(x) for x in row])))
- 
+
     def _replace(self, tablename=None, **values):
         tablename = self.escape(tablename or self.__tablename__)
         if values:
@@ -78,13 +81,13 @@ class BaseDB(object):
         else:
             sql_query = "REPLACE INTO %s DEFAULT VALUES" % tablename
         logger.debug("<sql: %s>", sql_query)
-        
+
         if values:
             dbcur = self._execute(sql_query, list(values.values()))
         else:
             dbcur = self._execute(sql_query)
         return dbcur.lastrowid
- 
+
     def _insert(self, tablename=None, **values):
         tablename = self.escape(tablename or self.__tablename__)
         if values:
@@ -94,7 +97,7 @@ class BaseDB(object):
         else:
             sql_query = "INSERT INTO %s DEFAULT VALUES" % tablename
         logger.debug("<sql: %s>", sql_query)
-        
+
         if values:
             dbcur = self._execute(sql_query, list(values.values()))
         else:
@@ -103,12 +106,12 @@ class BaseDB(object):
 
     def _update(self, tablename=None, where="1=0", where_values=[], **values):
         tablename = self.escape(tablename or self.__tablename__)
-        _key_values = ", ".join(["%s = %s" % (self.escape(k), self.placeholder) for k in values.keys()]) 
+        _key_values = ", ".join(["%s = %s" % (self.escape(k), self.placeholder) for k in values.keys()])
         sql_query = "UPDATE %s SET %s WHERE %s" % (tablename, _key_values, where)
         logger.debug("<sql: %s>", sql_query)
-        
-        return self._execute(sql_query, list(values.values())+list(where_values))
-    
+
+        return self._execute(sql_query, list(values.values()) + list(where_values))
+
     def _delete(self, tablename=None, where="1=0", where_values=[]):
         tablename = self.escape(tablename or self.__tablename__)
         sql_query = "DELETE FROM %s" % tablename
@@ -117,19 +120,24 @@ class BaseDB(object):
 
         return self._execute(sql_query, where_values)
 
+
 if __name__ == "__main__":
     import sqlite3
+
+
     class DB(BaseDB):
         __tablename__ = "test"
+
         def __init__(self):
             self.conn = sqlite3.connect(":memory:")
             cursor = self.conn.cursor()
             cursor.execute('''CREATE TABLE `%s` (id INTEGER PRIMARY KEY AUTOINCREMENT, name, age)'''
-                    % self.__tablename__)
-              
+                           % self.__tablename__)
+
         @property
         def dbcur(self):
             return self.conn.cursor()
+
 
     db = DB()
     assert db._insert(db.__tablename__, name="binux", age=23) == 1

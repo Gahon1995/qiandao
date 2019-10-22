@@ -15,24 +15,25 @@ from libs import utils
 from libs.fetcher import Fetcher
 from web.handlers import handlers, ui_modules, ui_methods
 
+
 class Application(tornado.web.Application):
     def __init__(self):
         settings = dict(
-                template_path = os.path.join(os.path.dirname(__file__), "tpl"),
-                static_path = os.path.join(os.path.dirname(__file__), "static"),
-                debug = config.debug,
-                gzip = config.gzip,
+            template_path=os.path.join(os.path.dirname(__file__), "tpl"),
+            static_path=os.path.join(os.path.dirname(__file__), "static"),
+            debug=config.debug,
+            gzip=config.gzip,
 
-                cookie_secret = config.cookie_secret,
-                login_url = '/login',
-                )
+            cookie_secret=config.cookie_secret,
+            login_url='/login',
+        )
         super(Application, self).__init__(handlers, **settings)
 
         self.jinja_env = jinja2.Environment(
-                loader=jinja2.FileSystemLoader(settings['template_path']),
-                extensions=['jinja2.ext.autoescape', 'jinja2.ext.loopcontrols', ],
-                autoescape=True,
-                auto_reload=config.debug)
+            loader=jinja2.FileSystemLoader(settings['template_path']),
+            extensions=['jinja2.ext.autoescape', 'jinja2.ext.loopcontrols', ],
+            autoescape=True,
+            auto_reload=config.debug)
 
         if config.db_type == 'sqlite3':
             import sqlite3_db as db
@@ -46,6 +47,7 @@ class Application(tornado.web.Application):
             tasklog = db.TaskLogDB()
             push_request = db.PRDB()
             redis = db.RedisDB()
+
         self.db = DB
 
         self.fetcher = Fetcher()
@@ -53,5 +55,5 @@ class Application(tornado.web.Application):
         self.jinja_env.globals.update({
             'config': config,
             'format_date': utils.format_date,
-            })
+        })
         self.jinja_env.filters.update(ui_methods)

@@ -12,6 +12,7 @@ import config
 from libs import utils
 from .basedb import BaseDB
 
+
 class TaskLogDB(BaseDB):
     '''
     task log db
@@ -21,20 +22,20 @@ class TaskLogDB(BaseDB):
     __tablename__ = 'tasklog'
 
     def __init__(self, host=config.mysql.host, port=config.mysql.port,
-            database=config.mysql.database, user=config.mysql.user, passwd=config.mysql.passwd):
+                 database=config.mysql.database, user=config.mysql.user, passwd=config.mysql.passwd):
         import mysql.connector
         self.conn = mysql.connector.connect(user=user, password=passwd, host=host, port=port,
-                database=database, autocommit=True)
+                                            database=database, autocommit=True)
 
     def add(self, taskid, success, msg=''):
         now = time.time()
 
         insert = dict(
-                taskid = taskid,
-                success = success,
-                msg = msg,
-                ctime = now,
-                )
+            taskid=taskid,
+            success=success,
+            msg=msg,
+            ctime=now,
+        )
         return self._insert(**insert)
 
     def list(self, fields=None, limit=100, **kwargs):

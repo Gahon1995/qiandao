@@ -28,13 +28,15 @@ class MyHandler(BaseHandler):
     def get(self):
         user = self.current_user
         tpls = self.db.tpl.list(userid=user['id'], fields=(
-        'id', 'siteurl', 'sitename', 'banner', 'note', 'disabled', 'lock', 'last_success', 'ctime', 'mtime', 'fork'),
+            'id', 'siteurl', 'sitename', 'banner', 'note', 'disabled', 'lock', 'last_success', 'ctime', 'mtime',
+            'fork'),
                                 limit=None)
 
         tasks = []
         for task in self.db.task.list(user['id'], fields=(
-        'id', 'tplid', 'note', 'disabled', 'last_success', 'success_count', 'failed_count', 'last_failed', 'next',
-        'last_failed_count', 'ctime'), limit=None):
+                'id', 'tplid', 'note', 'disabled', 'last_success', 'success_count', 'failed_count', 'last_failed',
+                'next',
+                'last_failed_count', 'ctime'), limit=None):
             tpl = self.db.tpl.get(task['tplid'], fields=('id', 'userid', 'sitename', 'siteurl', 'banner', 'note'))
             task['tpl'] = tpl
             tasks.append(task)

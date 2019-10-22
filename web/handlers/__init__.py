@@ -19,7 +19,7 @@ for file in os.listdir(os.path.dirname(__file__)):
     modules.append(file[:-3])
 
 for module in modules:
-    module = __import__('%s.%s' % (__package__, module), fromlist = ["handlers"])
+    module = __import__('%s.%s' % (__package__, module), fromlist=["handlers"])
     if hasattr(module, "handlers"):
         handlers.extend(module.handlers)
     if hasattr(module, "ui_modules"):
