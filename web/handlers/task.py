@@ -103,7 +103,7 @@ class TaskRunHandler(BaseHandler):
                                                                       'disabled')), 'w')
 
         tpl = self.check_permission(self.db.tpl.get(task['tplid'], fields=('id', 'userid', 'sitename',
-                                                                           'siteurl', 'tpl', 'interval',
+                                                                           'siteurl', 'tpl', 'type', 'interval',
                                                                            'last_success')))
 
         fetch_tpl = self.db.user.decrypt(
@@ -114,7 +114,12 @@ class TaskRunHandler(BaseHandler):
         )
 
         try:
-            new_env = yield self.fetcher.do_fetch(fetch_tpl, env)
+            # new_env = yield self.fetcher.do_fetch(fetch_tpl, env)
+            if tpl['type'] == 0:
+                new_env = yield self.fetcher.do_fetch(fetch_tpl, env)
+            elif tpl['type'] == 1:
+                new_env = yield self.fetcher.do_fetch_python(fetch_tpl, env)
+
         except Exception as e:
             self.db.tasklog.add(task['id'], success=False, msg=str(e))
             self.finish('<h1 class="alert alert-danger text-center">签到失败</h1><div class="well">%s</div>' % e)

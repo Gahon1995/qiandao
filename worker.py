@@ -135,7 +135,7 @@ class MainWorker(object):
     @gen.coroutine
     def do(self, task):
         user = self.db.user.get(task['userid'], fields=('id', 'email', 'email_verified', 'nickname'))
-        tpl = self.db.tpl.get(task['tplid'], fields=('id', 'userid', 'sitename', 'siteurl', 'tpl',
+        tpl = self.db.tpl.get(task['tplid'], fields=('id', 'userid', 'sitename', 'type', 'siteurl', 'tpl', 'cron',
                                                      'interval', 'last_success'))
 
         if task['disabled']:
@@ -166,7 +166,10 @@ class MainWorker(object):
                 session=[],
             )
 
-            new_env = yield self.fetcher.do_fetch(fetch_tpl, env)
+            if tpl['type'] == 0:
+                new_env = yield self.fetcher.do_fetch(fetch_tpl, env)
+            elif tpl['type'] == 1:
+                new_env = yield self.fetcher.do_fetch_python(fetch_tpl, env)
 
             variables = self.db.user.encrypt(task['userid'], new_env['variables'])
             session = self.db.user.encrypt(task['userid'],

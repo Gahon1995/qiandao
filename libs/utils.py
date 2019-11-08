@@ -4,7 +4,8 @@
 # Author: Binux<i@binux.me>
 #         http://binux.me
 # Created on 2014-08-07 22:00:27
-
+import importlib
+import os
 import socket
 import struct
 from tornado import gen
@@ -286,3 +287,31 @@ jinja_globals = {
     'random': get_random,
     'date_time': get_date_time,
 }
+
+import hashlib
+
+
+def md5(_str):
+    m = hashlib.md5()
+    m.update(_str.encode("utf8"))
+    print(m.hexdigest())
+    return m.hexdigest()
+
+
+def save_py_file(name, data, basepath):
+    print("save python file:", name)
+    if not os.path.exists(basepath):
+        os.mkdir(basepath)
+
+    if os.path.isfile(basepath):
+        os.remove(basepath)
+        os.mkdir(basepath)
+
+    file_path = os.path.join(basepath, f"{name}.py")
+    if os.path.exists(file_path):
+        print("文件已存在")
+        return
+
+    print("创建新文件")
+    with open(f"{basepath}/{name}.py", mode='w', encoding='utf-8') as fp:
+        fp.write(data)

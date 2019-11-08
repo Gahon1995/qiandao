@@ -28,6 +28,12 @@ class BaseHandler(tornado.web.RequestHandler):
             return getattr(self.application, key)
         raise AttributeError('no such attr: %s' % key)
 
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "http://localhost:8080")  # 这个地方可以写域名
+        self.set_header("Access-Control-Allow-Headers", "content-type")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+        self.set_header('Access-Control-Allow-Credentials', 'true')
+
     def render_string(self, template_name, **kwargs):
         try:
             template = self.application.jinja_env.get_template(template_name)
@@ -105,6 +111,12 @@ class BaseHandler(tornado.web.RequestHandler):
             self.evil(+5)
             raise HTTPError(401)
         return obj
+
+    # 处理OPTIONS请求
+    def options(self, *args):
+        # 返回方法1
+        self.set_status(204)
+        self.finish()
 
 
 class BaseWebSocket(tornado.websocket.WebSocketHandler):

@@ -4,7 +4,7 @@
 # Author: Binux<i@binux.me>
 #         http://binux.me
 # Created on 2014-08-06 11:55:41
-
+import importlib
 import re
 import json
 import random
@@ -13,6 +13,8 @@ import base64
 import logging
 import urllib.parse
 from datetime import datetime
+
+from libs.utils import md5, save_py_file
 
 try:
     import pycurl
@@ -417,6 +419,45 @@ class Fetcher(object):
         while stmt_stack:
             yield stmt_stack.pop()
 
+    @classmethod
+    def get_start_func(cls, base_package, name):
+        m = importlib.import_module(base_package + '.' + name)
+        return getattr(m, 'run')
+
+    @gen.coroutine
+    def do_fetch_python(self, tpl, env):
+        """
+            env = {
+                src: 'source code',
+                config: 'config'
+            }
+        :param obj:
+        :param proxy:
+        :return:
+        """
+
+        name = md5(tpl)
+        base = 'pyfiles'
+        save_py_file(name, tpl, './' + base)
+        run = self.get_start_func(base, name)
+
+        try:
+            result: dict = run(env['variables'])
+            success = result.get('success', False)
+            # variables, success, msg
+            new_env = dict(variables=result['variables'],
+                           session=[])
+
+        except Exception as e:
+            if config.debug:
+                logging.exception(e)
+
+            raise Exception('failed to request')
+        if not success:
+            raise Exception(f'failed to request, msg: {result["msg"]}')
+
+        raise gen.Return(new_env)
+
     @gen.coroutine
     def do_fetch(self, tpl, env, proxies=config.proxies, request_limit=100):
         """
@@ -438,6 +479,7 @@ class Fetcher(object):
                 entry = block['entry']
                 try:
                     request_limit -= 1
+
                     result = yield self.fetch(dict(
                         request=entry['request'],
                         rule=entry['rule'],

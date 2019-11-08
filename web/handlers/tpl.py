@@ -90,7 +90,8 @@ class TPLRunHandler(BaseHandler):
         fetch_tpl = None
         if tplid:
             tpl = self.check_permission(self.db.tpl.get(tplid, fields=('id', 'userid', 'sitename',
-                                                                       'siteurl', 'tpl', 'interval', 'last_success')))
+                                                                       'siteurl', 'type', 'tpl', 'interval',
+                                                                       'last_success')))
             fetch_tpl = self.db.user.decrypt(tpl['userid'], tpl['tpl'])
 
         if not fetch_tpl:
@@ -114,9 +115,17 @@ class TPLRunHandler(BaseHandler):
 
         try:
             if self.current_user:
-                result = yield self.fetcher.do_fetch(fetch_tpl, env)
+                if tpl['type'] == 0:
+                    result = yield self.fetcher.do_fetch(fetch_tpl, env)
+                elif tpl['type'] == 1:
+                    result = yield self.fetcher.do_fetch_python(fetch_tpl, env)
+                # result = yield self.fetcher.do_fetch(fetch_tpl, env)
             else:
-                result = yield self.fetcher.do_fetch(fetch_tpl, env, proxies=[])
+                if tpl['type'] == 0:
+                    result = yield self.fetcher.do_fetch(fetch_tpl, env)
+                elif tpl['type'] == 1:
+                    result = yield self.fetcher.do_fetch_python(fetch_tpl, env)
+                # result = yield self.fetcher.do_fetch(fetch_tpl, env, proxies=[])
         except Exception as e:
             self.render('tpl_run_failed.html', log=e)
             return

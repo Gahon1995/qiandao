@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}编辑签到{% endblock %}
+
+{% block head %}
+<link href="{{ static_url('components/bootstrap/dist/css/bootstrap.min.css') }}" rel="stylesheet" type="text/css">
+<!--<link href="{{ static_url('har/editor.css') }}" rel="stylesheet" type="text/css">-->
+<script src="{{ static_url('components/jquery/dist/jquery.min.js') }}"></script>
+<script src="{{ static_url('components/bootstrap/dist/js/bootstrap.min.js') }}"></script>
+<!--<script src="{{ static_url('components/angularjs/angular.min.js') }}"></script>-->
+<script src="{{ static_url('components/codemirror/lib/codemirror.js') }}"></script>
+<link rel="stylesheet" href="{{ static_url('components/codemirror/lib/codemirror.css') }}">
+<link rel="stylesheet" href="{{ static_url('components/codemirror/addon/fold/foldgutter.css') }}"
+      rel="external nofollow">
+<link rel="stylesheet" href="{{ static_url('components/codemirror/addon/hint/show-hint.css') }}"
+      rel="external nofollow">
+<link rel="stylesheet" href="{{ static_url('components/codemirror/addon/lint/lint.css') }}" rel="external nofollow">
+<link rel="stylesheet" href="{{ static_url('components/codemirror/theme/solarized.css') }}" rel="external nofollow">
+<link rel="stylesheet" href="{{ static_url('css/code.css') }}">
+{% endblock %}
+
+{% block body %}
+<script>
+    TPLID = '{{ tplid or 0 }}';
+    HASUSER = '{{ 1 if current_user else 0 }}';
+</script>
+{% raw %}
+<div class="container">
+    <div class="row">
+        <!--        <div class="col-md-3" id="editor-switch">-->
+        <!--            <a class="h1-index" href="/">-->
+        <!--                <h1 class="text-center">签到<sup>alpha</sup></h1>-->
+        <!--            </a>-->
+
+        <!--        </div>-->
+
+        <!-- entries list -->
+        <div class="col-md-12" id="entries">
+            <a class="h1-index" href="/">
+                <h1 class="text-center">签到<sup>alpha</sup></h1>
+            </a>
+            <div class="list-group">
+                <li class="list-group-item pageref">
+                    请输入运行配置文件，字典格式
+                </li>
+
+                <textarea class="form-control" form="code-form" id="config" name="config"></textarea>
+
+            </div>
+
+            <div class="list-group">
+                <li class="list-group-item pageref">
+                    源码
+                </li>
+
+                <textarea class="form-control" form="code-form" id="code" name="code"></textarea>
+
+                <!--                <li class="list-group-item" ng-if="filted.length == 0">过滤条件下没有请求</li>-->
+            </div>
+            <!-- ./entries list -->
+
+
+            <div class="text-right">
+                <a id="download-har" target="_blank" class="btn btn-default" ng-click="download()">下载</a>
+                <button class="btn btn-default" data-toggle="modal" data-target="#test-har">测试
+                </button>
+                <button ng-if="!readonly" class="btn btn-primary" data-toggle="modal" data-target="#save-har">保存
+                </button>
+            </div>
+
+            <!-- test har -->
+            <div class="modal fade" id="test-har">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title">测试HAR</h4>
+                        </div>
+                        <div class="modal-body">
+                            <div class="result"></div>
+                            <div class="form-horizontal" role="form">
+
+                                <div class="form-group" ng-repeat="var in env">
+                                    <label class="col-sm-3 control-label">{{ var.name }}</label>
+                                    <div ng-if="var.name.toLowerCase() != 'cookie'" class="col-sm-9">
+                                        <input ng-model="var.value">
+                                    </div>
+                                    <div ng-if="var.name.toLowerCase() == 'cookie'" class="col-sm-9">
+                                        <input ng-model="var.value">
+                                        <a ng-if="setting.siteurl" href="javascript:void(0)" data-toggle="get-cookie"
+                                           data-site="{{ setting.siteurl.indexOf('http') == 0 ? setting.siteurl : 'http://'+setting.siteurl }}"
+                                           data-cookie="" disabled>点击获取</a>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-loading-text="loading..."
+                                    ng-click="test()">测试
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!--save modal -->
+            <div class="modal fade" id="save-har">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title">保存HAR</h4>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-danger" role="alert" style="display: none;">
+                                <strong>Oh snap!</strong> Change a few things up and try submitting again.
+                            </div>
+                            <div class="alert alert-info" role="alert" style="display: none;">
+                                <strong>Oh snap!</strong> Change a few things up and try submitting again.
+                            </div>
+                            <form class="form-horizontal" id="code-form" onsubmit="return false" action="##"
+                                  method="post">
+                                <!--                                <div class="form-horizontal" role="form">-->
+
+                                <div class="form-group">
+                                    <label class="col-sm-3 control-label">网站名</label>
+                                    <div class="col-sm-9">
+                                        <input name="setting[sitename]">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="col-sm-3 control-label">网站网址</label>
+                                    <div class="col-sm-9">
+                                        <input name="setting[siteurl]">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="col-sm-3 control-label">备注</label>
+                                    <div class="col-sm-9">
+                                        <input name="setting[note]">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <input name="setting[type]" hidden value="1">
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="col-sm-3 control-label">间隔</label>
+                                    <div class="col-sm-9">
+                                        <select name="setting[interval]">
+                                            <option value=604800>每周</option>
+                                            <option value=259200>每3天</option>
+                                            <option value="">每天</option>
+                                            <option value=79200>每22小时</option>
+                                            <option value=43200>每12小时</option>
+                                            <option value=21600>每6小时</option>
+                                            <option value=18000>每5小时</option>
+                                            <option value=10800>每3小时</option>
+                                            <option value=7200>每2小时</option>
+                                            <option value=3600>每小时</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+
+                                <div class="form-group">
+                                    <label class="col-sm-3 control-label">cron</label>
+                                    <div class="col-sm-9">
+                                        <input id="cron" name="cron" class="form-control"/>
+                                    </div>
+                                </div>
+
+                                <!--                                </div>-->
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-loading-text="保存中..." onclick="save()">
+                                保存
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- /.save modal -->
+
+        </div>
+
+    </div>
+</div>
+
+
+{% endraw %}
+<script src="{{ static_url('components/codemirror/lib/codemirror.js') }}"></script>
+<script src="{{ static_url('components/codemirror/addon/comment/comment.js') }}"></script>
+<script src="{{ static_url('components/codemirror/addon/selection/active-line.js') }}"></script>
+<script src="{{ static_url('components/codemirror/keymap/sublime.js') }}"></script>
+<script src="{{ static_url('components/codemirror/addon/hint/show-hint.js') }}"></script>
+<script src="{{ static_url('components/codemirror/mode/python/python.js') }}"></script>
+<script src="{{ static_url('components/codemirror/addon/fold/foldcode.js') }}"></script>
+<script src="{{ static_url('components/codemirror/addon/fold/foldgutter.js') }}"></script>
+<script src="{{ static_url('components/codemirror/addon/fold/brace-fold.js') }}"></script>
+<script src="{{ static_url('components/codemirror/addon/fold/indent-fold.js') }}"></script>
+<script src="{{ static_url('components/codemirror/addon/fold/comment-fold.js') }}"></script>
+<script src="{{ static_url('components/codemirror/addon/edit/closebrackets.js') }}"></script>
+<script src="{{ static_url('components/codemirror/addon/edit/matchbrackets.js') }}"></script>
+<script src="{{ static_url('js/code.js') }}"></script>
+<script src="{{ static_url('js/jquery.serialize-object.min.js') }}"></script>
+<script src="{{ static_url('js/cron-selector.js') }}"></script>
+{% endblock %}
