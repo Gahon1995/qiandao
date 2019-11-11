@@ -15,6 +15,7 @@ from tornado import gen
 import config
 from libs import utils
 from libs.fetcher import Fetcher
+from libs.utils import get_next_cron_time
 
 logger = logging.getLogger('qiandao.worker')
 
@@ -177,10 +178,14 @@ class MainWorker(object):
                                            new_env['session'])
 
             # todo next not mid night
-            next = time.time() + max((tpl['interval'] if tpl['interval'] else 24 * 60 * 60), 30 * 60)
-            if tpl['interval'] is None:
-                next = self.fix_next_time(next)
 
+            if tpl['interval'] == -1:
+                # 计算cron表达式下次执行时间
+                next = get_next_cron_time(tpl['cron'])
+            else:
+                next = time.time() + max((tpl['interval'] if tpl['interval'] else 24 * 60 * 60), 30 * 60)
+                if tpl['interval'] is None:
+                    next = self.fix_next_time(next)
             # success feedback
             self.db.tasklog.add(task['id'], success=True, msg=new_env['variables'].get('__log__'))
             self.db.task.mod(task['id'],

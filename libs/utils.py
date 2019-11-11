@@ -8,6 +8,8 @@ import importlib
 import os
 import socket
 import struct
+
+import croniter
 from tornado import gen
 
 
@@ -122,6 +124,14 @@ def format_date(date, gmt_offset=-8 * 60, relative=True, shorter=False, full_for
         "year": str(local_date.year),
         "time": str_time
     }
+
+
+def get_next_cron_time(crontab):
+    crontab = crontab.replace("?", "*")
+    now = datetime.datetime.now()
+    cron = croniter.croniter(crontab, now)
+    # return [cron.get_next(datetime.datetime).strftime("%Y-%m-%d %H:%M")][0]
+    return cron.get_next(datetime.datetime).timestamp()
 
 
 def utf8(string):

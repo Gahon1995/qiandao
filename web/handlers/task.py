@@ -9,6 +9,7 @@ import json
 import time
 from tornado import gen
 
+from libs.utils import get_next_cron_time
 from .base import *
 
 
@@ -45,7 +46,7 @@ class TaskNewHandler(BaseHandler):
         tested = self.get_body_argument('_binux_tested', False)
         note = self.get_body_argument('_binux_note')
 
-        tpl = self.check_permission(self.db.tpl.get(tplid, fields=('id', 'userid', 'interval')))
+        tpl = self.check_permission(self.db.tpl.get(tplid, fields=('id', 'userid', 'interval', 'cron')))
 
         env = {}
         for key, value in self.request.body_arguments.items():
@@ -62,7 +63,14 @@ class TaskNewHandler(BaseHandler):
             if tested:
                 self.db.task.mod(taskid, note=note, next=time.time() + (tpl['interval'] or 24 * 60 * 60))
             else:
-                self.db.task.mod(taskid, note=note, next=time.time() + 15)
+
+                if tpl['interval'] == -1:
+                    # 计算cron表达式下次执行时间
+                    next = get_next_cron_time(tpl['cron'])
+                else:
+                    next = time.time() + 15
+
+                self.db.task.mod(taskid, note=note, next=next)
         else:
             task = self.check_permission(self.db.task.get(taskid, fields=('id', 'userid', 'init_env')), 'w')
 
@@ -103,7 +111,7 @@ class TaskRunHandler(BaseHandler):
                                                                       'disabled')), 'w')
 
         tpl = self.check_permission(self.db.tpl.get(task['tplid'], fields=('id', 'userid', 'sitename',
-                                                                           'siteurl', 'tpl', 'type', 'interval',
+                                                                           'siteurl', 'tpl', 'type', 'interval', 'cron',
                                                                            'last_success')))
 
         fetch_tpl = self.db.user.decrypt(
@@ -125,6 +133,14 @@ class TaskRunHandler(BaseHandler):
             self.finish('<h1 class="alert alert-danger text-center">签到失败</h1><div class="well">%s</div>' % e)
             return
 
+        if tpl['interval'] == -1:
+            # 计算cron表达式下次执行时间
+            next = get_next_cron_time(tpl['cron'])
+        else:
+            next = time.time() + (tpl['interval'] if tpl['interval'] else 24 * 60 * 60)
+            if tpl['interval'] is None:
+                next = self.fix_next_time(next)
+
         self.db.tasklog.add(task['id'], success=True, msg=new_env['variables'].get('__log__'))
         self.db.task.mod(task['id'],
                          disabled=False,
@@ -132,7 +148,7 @@ class TaskRunHandler(BaseHandler):
                          last_failed_count=0,
                          success_count=task['success_count'] + 1,
                          mtime=time.time(),
-                         next=time.time() + (tpl['interval'] if tpl['interval'] else 24 * 60 * 60))
+                         next=next)
         self.db.tpl.incr_success(tpl['id'])
         self.finish('<h1 class="alert alert-success text-center">签到成功</h1>')
         return

@@ -46,7 +46,7 @@
                 <td>{{ task.failed_count }}</td>
                 <td>{{ format_date(task.last_success) if task.last_success else '从未' }}</td>
                 <td>{{ my_status(task) }}</td>
-                <td>{{ format_date(task.next) if task.next else '从不' }}</td>
+                <td>{{ format_date(task.next, full_format=True) if task.next else '从不' }}</td>
                 <td>
                     {% if task.tpl %}
                     <a class="modal_load" href="/task/{{ task.id }}/edit">修改</a>
@@ -71,8 +71,34 @@
     <div class="container">
         <h2>
             我的模板
-            <a href="/har/edit" class="btn btn-default btn-xs glyphicon glyphicon-plus" target="_blank"></a>
+            <!--            <a href="/har/edit" class="btn btn-default btn-xs glyphicon glyphicon-plus" target="_blank"></a>-->
+
+            <!--            <span class="dropdown">-->
+            <!--                <button class="btn btn-default btn-xs dropdown-toggle glyphicon glyphicon-plus" type="button"-->
+            <!--                        id="dropdownMenuButton"-->
+            <!--                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">-->
+            <!--                </button>-->
+            <!--                <span class="dropdown-menu" aria-labelledby="dropdownMenuButton">-->
+            <!--                    <a class="dropdown-header" href="/har/edit" target="_blank">HAR形式</a>-->
+            <!--                    <a class="dropdown-header" href="/glue/edit" target="_blank">Python形式</a>-->
+            <!--                </span>-->
+            <!--            </span>-->
+            <span class="btn-group">
+                <button type="button" class="btn btn-default btn-xs dropdown-toggle glyphicon glyphicon-plus"
+                        data-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false">
+<!--                    <span class="caret"></span>-->
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-header" href="/har/edit" target="_blank">HAR形式</a></li>
+                    <li><a class="dropdown-header" href="/glue/edit" target="_blank">Python形式</a></li>
+                    <!--                    <li role="separator" class="divider"></li>-->
+                </ul>
+            </span>
         </h2>
+        <!-- Single button -->
+
         <table class="table">
             <thead>
             <tr>
