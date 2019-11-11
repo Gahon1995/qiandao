@@ -61,25 +61,87 @@ class GlueTest(BaseHandler):
     def post(self):
         self.evil(+1)
 
-        data = json.loads(self.request.body)
-        ret = yield self.fetcher.fetch(data)
+        result = dict(success=False, msg="")
 
-        result = {
-            'success': ret['success'],
-            'har': self.fetcher.response2har(ret['response']),
-            'env': {
-                'variables': ret['env']['variables'],
-                'session': ret['env']['session'].to_json(),
-            }
-        }
+        data = json.loads(self.request.body)
+        try:
+            yield self.fetcher.do_fetch_python(data['code'], data)
+            result['success'] = True
+        except Exception as e:
+            # logger.exception(e)
+            logger.info("测试失败")
+            result['msg'] = repr(e)
 
         self.finish(result)
 
 
+import requests
+
+
+# the class to define your task
+class Demo(object):
+
+    def __init__(self, variables):
+        self.variables = variables
+
+    @classmethod
+    def start(cls, variables):
+        # the function to init Demo
+        demo = Demo(variables)
+        demo.run()
+        return 'something'
+
+    def run(self):
+        # function to run task
+        return 'something'
+
+
+# entry point
+def run(variables: dict):
+    # use this function to start your task
+    res = Demo.start(variables)
+    return dict(
+        variables=variables,  # set new variables if need to update
+        success=True,  # whether the task is success
+        msg="msg to show"  # msg to desc your task result
+    )
+
+
 class GlueSave(BaseHandler):
 
-    def get(self, id):
-        pass
+    def get(self, id=None):
+
+        self.finish('''import requests
+
+# the class to define your task
+class Demo(object):
+
+    def __init__(self, variables):
+        self.variables = variables
+
+    @classmethod
+    def start(cls, variables):
+        # the function to init Demo
+        demo = Demo(variables)
+        demo.run()
+        return 'something'
+
+    def run(self):
+        # function to run task
+        return 'something'
+
+
+# entry point
+def run(variables: dict):
+    # use this function to start your task
+    res = Demo.start(variables)
+    return dict(
+        variables=variables,  # set new variables if need to update
+        success=True,  # whether the task is success
+        msg="msg to show"  # msg to desc your task result
+    )
+'''
+                    )
 
     # @staticmethod
     # def get_variables(tpl):

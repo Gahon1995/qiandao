@@ -452,7 +452,7 @@ class Fetcher(object):
             if config.debug:
                 logging.exception(e)
 
-            raise Exception('failed to request')
+            raise e
         if not success:
             raise Exception(f'failed to request, msg: {result["msg"]}')
 

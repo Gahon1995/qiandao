@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <meta charset=utf-8>
+    <meta http-equiv=X-UA-Compatible content="IE=edge">
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <link rel=icon href="{{ static_url('components/glue/favicon.ico') }}">
+    <title>qiandao</title>
+    <link href="{{ static_url('components/glue/css/app.ba481ba0.css') }}" rel=preload as=style>
+    <link href="{{ static_url('components/glue/css/chunk-vendors.653f942c.css') }}" rel=preload as=style>
+    <link href="{{ static_url('components/glue/js/app.87cb6a93.js') }}" rel=preload as=script>
+    <link href="{{ static_url('components/glue/js/chunk-vendors.a6e4fd2d.js') }}" rel=preload as=script>
+    <link href="{{ static_url('components/glue/css/chunk-vendors.653f942c.css') }}" rel=stylesheet>
+    <link href="{{ static_url('components/glue/css/app.ba481ba0.css') }}" rel=stylesheet>
+</head>
+<body>
+<script>
+    TPLID = '{{ tplid or 0 }}';
+    HASUSER = '{{ 1 if current_user else 0 }}';
+</script>
+
+<noscript><strong>We're sorry but qiandao doesn't work properly without JavaScript enabled. Please enable it to
+    continue.</strong></noscript>
+<div id=app></div>
+<script src="{{ static_url('components/glue/js/chunk-vendors.a6e4fd2d.js') }}"></script>
+<script src="{{ static_url('components/glue/js/app.87cb6a93.js') }}"></script>
+</body>
+</html>
